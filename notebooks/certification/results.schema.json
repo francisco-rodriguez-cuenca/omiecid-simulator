@@ -1,0 +1,204 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/JaxMARL-HFT/notebooks/certification/results.schema.json",
+  "title": "OMIE certification results (results/C<nn>.json)",
+  "description": "Schema of record for one scenario's results (OMIE-CERT-HARNESS-1, decision H5). The semantic rules (failure_kinds derived from the payload, PASS <=> no failure kind <=> null explanation, discard rate) are checked by cert_support.validate_results on top of this schema.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "cert_id", "notebook", "scenario", "status", "failure_kinds", "known_result",
+    "oracle_kind", "draws", "seeds", "generator", "spec", "citations", "assertions", "invariants",
+    "capacity", "eager_jit_identical", "wall_clock_s", "runtime_forecast_s", "failure_explanation",
+    "environment"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "cert_id": {"type": "string", "pattern": "^C\\d{2}$"},
+    "notebook": {"type": "string", "minLength": 1},
+    "scenario": {"type": "string"},
+    "status": {"enum": ["PASS", "NOT CERTIFIED"]},
+    "failure_kinds": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"enum": ["oracle_mismatch", "invariant_violation", "eager_jit_disagreement", "capacity_flag",
+                         "vacuous_run", "quote_drift"]}
+    },
+    "known_result": {"type": "string"},
+    "oracle_kind": {"type": "string"},
+    "draws": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requested", "valid", "discarded", "discard_rate"],
+      "properties": {
+        "requested": {"type": "integer", "minimum": 0},
+        "valid": {"type": "integer", "minimum": 0},
+        "discarded": {"type": "integer", "minimum": 0},
+        "discard_rate": {"type": "number", "minimum": 0, "maximum": 1}
+      }
+    },
+    "seeds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["first", "last", "count", "failing"],
+      "properties": {
+        "first": {"type": ["integer", "null"]},
+        "last": {"type": ["integer", "null"]},
+        "count": {"type": "integer", "minimum": 0},
+        "failing": {"type": "array", "items": {"type": "integer"}}
+      }
+    },
+    "generator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module", "digest_schema_version", "digests"],
+      "properties": {
+        "module": {"type": "string"},
+        "digest_schema_version": {"type": "integer"},
+        "digests": {"type": "object", "additionalProperties": {"type": "string", "pattern": "^[0-9a-f]{32}$"}}
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["quotes", "quote_digest"],
+      "properties": {
+        "quotes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["source", "section", "block", "version", "digest", "ok", "reason"],
+            "properties": {
+              "source": {"type": "string"},
+              "section": {"type": "string"},
+              "block": {"type": ["string", "null"]},
+              "version": {"type": ["string", "null"]},
+              "digest": {"type": "string", "pattern": "^[0-9a-f]{32}$"},
+              "ok": {"type": "boolean"},
+              "reason": {"enum": ["ok", "empty", "degenerate_fragment", "unknown_source", "block_missing",
+                                  "block_forbidden", "bad_label", "unversioned_source", "section_not_found",
+                                  "block_not_found", "block_ambiguous", "not_found", "wrong_section",
+                                  "out_of_order", "span_exceeded"]}
+            }
+          }
+        },
+        "quote_digest": {"type": "string", "pattern": "^[0-9a-f]{32}$"}
+      }
+    },
+    "citations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["source", "text", "checked"],
+        "properties": {
+          "source": {"type": "string"},
+          "text": {"type": "string"},
+          "checked": {"const": false}
+        }
+      }
+    },
+    "assertions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "kind", "status", "seed", "expected", "observed", "unit", "detail", "rule"],
+        "properties": {
+          "name": {"type": "string"},
+          "kind": {"enum": ["oracle", "eager_jit"]},
+          "status": {"enum": ["pass", "fail"]},
+          "seed": {"type": ["integer", "null"]},
+          "expected": {},
+          "observed": {},
+          "unit": {"enum": ["price_int", "qty_int", "count", "bool", "other"]},
+          "detail": {"type": "string"},
+          "rule": {"type": ["string", "null"]}
+        }
+      }
+    },
+    "invariants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["check_id", "status", "n_pass", "n_fail", "n_not_applicable", "failing_seeds", "unobserved"],
+        "properties": {
+          "check_id": {"type": "string"},
+          "status": {"enum": ["pass", "fail", "not_applicable"]},
+          "n_pass": {"type": "integer", "minimum": 0},
+          "n_fail": {"type": "integer", "minimum": 0},
+          "n_not_applicable": {"type": "integer", "minimum": 0},
+          "failing_seeds": {"type": "array", "items": {"type": "integer"}},
+          "unobserved": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "capacity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["envelope", "peaks"],
+      "properties": {
+        "envelope": {"$ref": "#/$defs/axes"},
+        "peaks": {"$ref": "#/$defs/axes"}
+      }
+    },
+    "eager_jit_identical": {"type": ["boolean", "null"]},
+    "wall_clock_s": {"type": "number", "minimum": 0},
+    "runtime_forecast_s": {"type": ["number", "null"]},
+    "failure_explanation": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["what_failed", "smallest_case", "rule", "hypothesis", "downstream", "paragraph"],
+          "properties": {
+            "what_failed": {"type": "string"},
+            "smallest_case": {
+              "oneOf": [
+                {"type": "null"},
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["seed", "fixture", "rows"],
+                  "properties": {
+                    "seed": {"type": ["integer", "null"]},
+                    "fixture": {"type": ["string", "null"]},
+                    "rows": {"type": ["integer", "null"]}
+                  }
+                }
+              ]
+            },
+            "rule": {"type": ["string", "null"]},
+            "hypothesis": {"type": ["string", "null"]},
+            "downstream": {"type": ["string", "null"]},
+            "paragraph": {"type": "string", "minLength": 1}
+          }
+        }
+      ]
+    },
+    "environment": {
+      "type": "object",
+      "required": ["python", "jax", "backend"],
+      "properties": {
+        "python": {"type": "string"},
+        "jax": {"type": ["string", "null"]},
+        "backend": {"type": ["string", "null"]}
+      }
+    }
+  },
+  "$defs": {
+    "axes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resting_per_side", "trades", "hops", "concurrent_icebergs"],
+      "properties": {
+        "resting_per_side": {"type": ["integer", "null"]},
+        "trades": {"type": ["integer", "null"]},
+        "hops": {"type": ["integer", "null"]},
+        "concurrent_icebergs": {"type": ["integer", "null"]}
+      }
+    }
+  }
+}

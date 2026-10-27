@@ -1,0 +1,5 @@
+.ipynb_checkpoints/
+__pycache__/
+# harness-reserved ids C90-C99 (dry runs, probes): never committed as evidence
+results/C9?.json
+fixtures/C9?_*

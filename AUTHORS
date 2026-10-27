@@ -1,0 +1,14 @@
+# Authors of OmieCID-Simulator
+
+Francisco Rodriguez-Cuenca <frodriguezc@comillas.edu>
+Eugenio Francisco Sánchez Úbeda <eugenio.sanchez@iit.comillas.edu>
+Álvaro Jesús López López <alvaro.lopez@iit.comillas.edu>
+
+Instituto de Investigación Tecnológica (IIT), ICAI School of Engineering,
+Universidad Pontificia Comillas, Madrid, Spain.
+
+# Upstream
+
+This software derives from JaxMARL-HFT (Copyright 2025 The JaxMARL-HFT Authors,
+Apache License 2.0), whose limit-order-book core derives from JAX-LOB
+(S. Frey, K. Li et al., University of Oxford). See NOTICE.

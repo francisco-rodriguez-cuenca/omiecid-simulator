@@ -1,0 +1,1 @@
+"""OmieCID-Simulator: a JAX-based Python package that reproduces and analyzes order matching in the Iberian CID market, the MIBEL segment of the European Single Intraday Coupling operated by OMIE, with out-of-the-box compatibility with public OMIE data."""

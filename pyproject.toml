@@ -1,0 +1,83 @@
+[build-system]
+requires = ["hatchling>=1.26"]
+build-backend = "hatchling.build"
+
+[project]
+name = "omiecid-simulator"
+version = "0.1.0"
+description = "A JAX-based Python package that reproduces and analyzes order matching in the Iberian CID market operated by OMIE."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+authors = [
+    { name = "Francisco Rodriguez-Cuenca", email = "frodriguezc@comillas.edu" },
+]
+keywords = ["jax", "limit order book", "continuous intraday market", "OMIE", "electricity markets", "simulation"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering",
+]
+dependencies = [
+    "jax>=0.6.2,<0.7",
+    "flax>=0.10.7",
+    "chex>=0.1.90",
+    "numpy>=2.2",
+    "pandas>=2.3,<3",
+]
+
+[project.optional-dependencies]
+# Certification notebooks (notebooks/certification/) and the test suite.
+# Notebook tooling and the test runner.
+validation = [
+    "jupyter>=1.1",
+    "nbformat>=5.10",
+    "nbclient>=0.10",
+    "nbstripout>=0.8",
+    "ipykernel>=6.29",
+    "jsonschema>=4.23",
+    "matplotlib>=3.9",
+    "pytest>=8",
+    "pytest-xdist>=3.6",
+]
+# Scripts under demos/.
+examples = [
+    "tqdm>=4.66",
+]
+# NVIDIA GPU backend (same JAX range as the core dependency).
+cuda12 = [
+    "jax[cuda12]>=0.6.2,<0.7",
+]
+# Development: everything above plus packaging.
+dev = [
+    "omiecid-simulator[validation,examples]",
+    "build>=1.2",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["omiecid_simulator"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "omiecid_simulator/",
+    "README.md",
+    "LICENSE",
+    "NOTICE",
+    "AUTHORS",
+    "CITATION.cff",
+    "CHANGELOG.md",
+    "pyproject.toml",
+]
+
+[tool.pytest.ini_options]
+addopts = "-n 24 --max-worker-restart=3"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "jit: marks tests that exercise a jax.jit compile (deselect with '-m \"not jit\"')",
+    "gpu: marks tests that require a CUDA GPU (auto-skipped when no CUDA device is visible; see tests/omiecid/conftest.py)",
+    "perf: marks temporal/meta-tests that assert wall-clock budgets or perf-gate self-checks rather than OMIE correctness (deselect with '-m \"not perf\"')",
+    "audit: marks independent-verification tests (auto-applied to tests/omiecid/*_audit.py by tests/omiecid/conftest.py). Re-run on demand, not on every routine full-suite run; routine runs use '-m \"not audit\"'. The two core gate members (test_contract_book_audit, test_ioc_fok_audit) are exempt from this marker and always run.",
+]

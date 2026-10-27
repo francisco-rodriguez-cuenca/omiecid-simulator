@@ -1,178 +1,177 @@
-# JaxMARL-HFT: GPU-Accelerated Multi-Agent Reinforcement Learning for High-Frequency Trading
+# OmieCID-Simulator
 
-A JAX-based framework for multi-agent reinforcement learning for high-frequency trading, based on the [JAX-LOB simulator](https://github.com/KangOxford/jax-lob) and an extension of [JaxMARL](https://github.com/FLAIROx/JaxMARL) to the financial trading domain.
+**OmieCID-Simulator** is a JAX-based Python package that reproduces and analyzes order matching in the Iberian CID market, the MIBEL segment of the European Single Intraday Coupling operated by OMIE, with out-of-the-box compatibility with public OMIE data.
 
-## Key Features
+It contains:
 
-- **GPU-Accelerated**: Built on JAX for high-performance parallel computation with JIT compilation
-- **Two levels of Parallelization**: Parallel processing across episodes and agent types using `vmap`
-- **Multi-Agent RL**: Supports market making, execution, and directional trading agents
-- **LOBSTER Data Integration**: Real market data support with efficient GPU memory usage
-- **Scalable**: Handles thousands of parallel environments
-- **Heterogeneous Agents**: Supports different observation/action spaces
+- the OMIE matching engine: one limit order book per quarter-hour contract, with
+  price-time priority, limit (NON), IOC, FOK, iceberg and ICEwPI orders,
+  cancellation, gate closure and settlement;
+- the data pipeline: a loader for the public OMIE order and trade files, and a
+  generator of synthetic order tapes;
+- a **Session**: replay of an order tape on the market clock, in which one
+  participant submits its own orders until gate closure;
+- the book-level order-entry API (`ContractBook`);
+- the certification evidence: 17 scenario notebooks (C00–C16), the certificate
+  and its log.
 
-## Getting Started
+Everything is written in JAX: the session step is compiled once and can be
+`jit`-ed and `vmap`-ed.
 
-### 1. Clone and install
+## Installation
 
-```bash
-conda create -n jaxmarl_hft python=3.10
-conda activate jaxmarl_hft
-pip install "jax[cuda12]"
-pip install -r requirements.txt
-```
-
-Requires Python 3.8+ and a CUDA-capable GPU.
-
-### 2. Get LOBSTER data
-
-You need [LOBSTER](https://data.lobsterdata.com/info/WhatIsLOBSTER.php) limit order book data. Each trading day needs a matched pair of `message` and `orderbook` CSV files.
-
-Create the following directory structure inside the repo (or anywhere — you'll point to it in the config):
-
-```
-data/rawLOBSTER/<STOCK>/<TIME_PERIOD>/
-├── <STOCK>_<DATE>_34200000_57600000_message_10.csv
-└── <STOCK>_<DATE>_34200000_57600000_orderbook_10.csv
-```
-
-For example, for GOOG data from 2022:
-```
-data/rawLOBSTER/GOOG/2022/
-├── GOOG_2022-01-03_34200000_57600000_message_10.csv
-├── GOOG_2022-01-03_34200000_57600000_orderbook_10.csv
-└── ...
-```
-
-### 3. Edit the environment config
-
-Pick an environment config from `config/env_configs/` (recommended starting point: `2_player_fq_fqc.json` for multi-agent market making + execution) and set these fields in the `world_config` section:
-
-```json
-"alphatradePath": "/absolute/path/to/JaxMARL-HFT",
-"dataPath": "/absolute/path/to/JaxMARL-HFT/data",
-"stock": "GOOG",
-"timePeriod": "2022"
-```
-
-`alphatradePath` is the repo root (used for caching and checkpoints), `dataPath` is the parent of `rawLOBSTER/`, `stock` matches your data folder name, and `timePeriod` is the subfolder under `rawLOBSTER/<stock>/`.
-
-Also set `TimePeriod` in your training config (`config/rl_configs/*.yaml`) to match.
-
-### 4. Run training
+Python 3.10 or later. From a clone of this repository:
 
 ```bash
-export PYTHONPATH="$(pwd):$PYTHONPATH"
-
-# Multi-agent (market making + execution)
-python3 gymnax_exchange/jaxrl/MARL/ippo_rnn_JAXMARL.py \
-    --config-name="ippo_rnn_JAXMARL_2player" \
-    WANDB_MODE="disabled"
+pip install .                         # core: jax, flax, chex, numpy, pandas
+pip install ".[validation]"           # + notebooks and the test suite
+pip install ".[examples]"             # + the demo scripts
+pip install ".[cuda12]"               # + the NVIDIA GPU backend
+pip install -c constraints/verified.txt ".[validation]"   # exact verified versions
 ```
 
-The first run preprocesses the LOBSTER data and caches it. Subsequent runs are much faster. Additional training configs are in `config/rl_configs/`. You can override any config value from the command line using [Hydra](https://hydra.cc/) syntax (e.g. `TOTAL_TIMESTEPS=50000 NUM_ENVS=64`).
+The distribution is named `omiecid-simulator` (`pip install omiecid-simulator`
+once it is published on PyPI); the import package is `omiecid_simulator`.
+Everything runs on CPU; the GPU is optional.
 
-### 5. WandB (optional)
+## Quickstart
 
-To enable [Weights & Biases](https://wandb.ai/) experiment tracking, run `wandb login` and then add `WANDB_MODE="online" ENTITY="your-wandb-entity" PROJECT="your-project-name"` to the training command. These can also be set directly in the YAML configs (`config/rl_configs/*.yaml`). The YAML configs support [WandB sweeps](https://docs.wandb.ai/guides/sweeps) — when a `SWEEP_PARAMETERS` section is present and `WANDB_MODE` is not `"disabled"`, training automatically creates a sweep.
+A synthetic tape, a session, one participant, and the settled result:
 
-## Docker Setup (alternative)
+```python
+import jax
+from omiecid_simulator.omiecid.omie_session import Session, AgentOrder, AGENT_TRADER_ID
+from omiecid_simulator.omiecid.order_types import Side
+from omiecid_simulator.omiecid.settlement import compute_agent_pnl
+from omiecid_simulator.jaxomiecid.omie_tape_synth import TapeBuilder, stack_tapes
 
-For **x86_64/amd64 only** (base image: `nvcr.io/nvidia/jax`). Edit the `Makefile` to set `DATADIR` to your LOBSTER data directory, then:
+# 1. A synthetic background tape: a two-sided book around 50 EUR/MWh,
+#    then six 1 MW sellers that cross the bids, then a few far asks.
+tb = TapeBuilder(timestamp_step=30)                  # one order every 30 s
+for i in range(5):
+    tb.add(side=Side.BUY, price_eur=49.0 - i, qty_mw=2.0)
+    tb.add(side=Side.SELL, price_eur=51.0 + i, qty_mw=2.0)
+for _ in range(6):
+    tb.add(side=Side.SELL, price_eur=47.0, qty_mw=1.0)
+for i in range(4):
+    tb.add(side=Side.SELL, price_eur=56.0 + i, qty_mw=1.0)
+tapes = stack_tapes([tb.build()])                    # (n_tapes, N, 13) int32
+
+# 2. A session replays 4 tape orders per step; the participant acts in between.
+session = Session({"tapes": tapes, "orders_per_step": 4})
+state = session.reset(jax.random.PRNGKey(0))
+
+plan = {
+    1: AgentOrder.create(side=Side.BUY, price=48.5, quantity=1.0),   # rests, filled passively
+    4: AgentOrder.create(side=Side.SELL, price=45.0, quantity=1.0),  # crosses the best bid
+}
+key, done, step = jax.random.PRNGKey(1), False, 0
+while not done:
+    key, sub = jax.random.split(key)
+    state, report, done = session.step(sub, state, plan.get(step))
+    tob = session.top_of_book(state)
+    print(f"step {step}: t={int(state.time):2d} min  "
+          f"bid/ask {float(tob.p_bid):.2f}/{float(tob.p_ask):.2f}  "
+          f"passive {float(report.passive_qty_signed):+.1f} MW  "
+          f"own {float(report.submit.trade_qty):.1f} MW  "
+          f"cash {float(report.cash_delta_eur):+8.3f} EUR")
+    step += 1
+
+# 3. Settlement: agent_cash is the participant's realized cash, exact.
+#    compute_agent_pnl over the participant's trade tape is a cross-check; it is
+#    exact here because no step had passive fills in both directions.
+pnl = float(state.agent_cash[0])
+check = float(compute_agent_pnl(state.agent_trades.reshape(-1, 6), AGENT_TRADER_ID))
+print(f"inventory {float(state.agent_inventory[0]):+.1f} MW, "
+      f"settled P&L {pnl:+.3f} EUR (trade-tape check {check:+.3f} EUR)")
+```
+
+Output (the first call compiles the step, which takes about a minute on CPU):
+
+```text
+step 0: t=10 min  bid/ask 49.00/51.00  passive +0.0 MW  own 0.0 MW  cash   +0.000 EUR
+step 1: t=22 min  bid/ask 49.00/51.00  passive +0.0 MW  own 0.0 MW  cash   +0.000 EUR
+step 2: t=35 min  bid/ask 48.50/51.00  passive +0.0 MW  own 0.0 MW  cash   +0.000 EUR
+step 3: t=47 min  bid/ask 47.00/51.00  passive +1.0 MW  own 0.0 MW  cash  -12.125 EUR
+step 4: t=60 min  bid/ask 46.00/51.00  passive +0.0 MW  own 1.0 MW  cash  +11.750 EUR
+inventory +0.0 MW, settled P&L -0.375 EUR (trade-tape check -0.375 EUR)
+```
+
+The bid at 48.50 EUR/MWh rests behind the background book and is hit at step 3;
+the sell at step 4 crosses the best bid (47.00). A trade's value is
+$V = Q \cdot p \cdot d$ with $d = 0.25$ h, so the round trip settles at
+$(47.00 - 48.50) \cdot 1 \cdot 0.25 = -0.375$ EUR. `state.agent_cash` is the
+settled result; `compute_agent_pnl` over `state.agent_trades` agrees only when no
+step had passive fills in both directions (see [Sessions](docs/sessions.md#settlement)
+and [Limitations](docs/limitations.md)).
+
+## Real OMIE data
+
+No OMIE data ships with the package. Download the public files from OMIE
+(both order and trade files are needed), then load one contract:
 
 ```bash
-make build              # build image
-make run                # interactive shell
-make ppo_2player gpu=0  # run training on GPU 0
+python -m scripts.download_omie_data --months 202506 --data-type orders
+python -m scripts.download_omie_data --months 202506 --data-type trades
 ```
 
-The repo is mounted at `/home/myuser/` and data at `/home/myuser/data/`, so the default env config paths work without modification. For WandB, set `export WANDB_API_KEY=<your-key>` before running.
+```python
+from omiecid_simulator.omiecid.omie_session import Session
+from omiecid_simulator.omiecid.omie_config import OMIEMarketConfig
+from omiecid_simulator.jaxomiecid.omie_data_config import OMIEDataConfig
+from omiecid_simulator.jaxomiecid.omie_data_loader import load_omie_orders
+from omiecid_simulator.jaxomiecid.omie_tape_synth import stack_tapes
 
-## Agent Types
-
-### Market Making Agents
-- **Purpose**: Provide liquidity by posting bid/ask orders
-- **Action Spaces**: Multiple discrete action spaces (spread_skew, fixed_quants, AvSt, directional_trading, simple)
-- **Reward Functions**: Various PnL-based rewards with configurable inventory penalties
-
-### Execution Agents
-- **Purpose**: Execute large orders with minimal market impact
-- **Action Spaces**: Discrete quantity selection at reference prices (fixed_quants, fixed_prices, complex variants)
-- **Reward Functions**: Slippage-based with configurable end-of-episode penalties
-
-### Directional Trading
-- **Purpose**: Simple directional trading strategy
-- **Action Spaces**: Bid/ask at best prices or no action
-- **Reward Function**: Portfolio value
-- **Note:** Uses the same class as the market making agent
-
-## Repository Structure
-
-```
-config/
-├── env_configs/          # Environment JSON configurations
-└── rl_configs/           # Training YAML configurations
-gymnax_exchange/
-├── jaxen/                # Environment implementations
-│   ├── marl_env.py       # Multi-agent RL environment
-│   ├── mm_env.py         # Market making (and directional trading) environment
-│   ├── exec_env.py       # Execution environment
-│   └── from_JAXMARL/     # Multi-agent base classes and spaces
-├── jaxrl/                # Reinforcement learning algorithms
-│   └── MARL/             # IPPO implementation and baseline evaluation
-├── jaxob/                # Order book implementation
-├── jaxlobster/           # LOBSTER data integration
-└── utils/                # Shared utilities
+k = 51                                   # delivery 12:45-13:00 on 2025-06-25
+orders = load_omie_orders(OMIEDataConfig(data_path="data/rawOMIE",
+                                         contract_id=k, delivery_date="2025-06-25"))
+session = Session({
+    "tapes": stack_tapes([orders]),
+    "orders_per_step": 8,
+    "session_clock": "got_relative",               # the real market clock
+    "gct_minutes_from_got": 460 + 60 * (k // 4),   # gate closure of contract k
+    "market_config": OMIEMarketConfig(nTrades=4096),
+})
 ```
 
-## Configuration
+Use `session_clock="got_relative"` for real data. See [Data](docs/data.md).
 
-The framework uses a comprehensive configuration system with dataclasses for different components:
+## Documentation
 
-### Core Configuration Classes
+- [Market model](docs/market-model.md): what the engine implements, rule by rule.
+- [Modelling assumptions](docs/modelling-assumptions.md): rulings and simplifications.
+- [Sessions](docs/sessions.md): the `Session` API.
+- [Data](docs/data.md): OMIE files, the tape layout, synthetic tapes.
+- [Validation](docs/validation.md): the certification ladder and its evidence.
+- [Testing](docs/testing.md) and [Performance](docs/performance.md).
+- [Limitations](docs/limitations.md).
+- [Certification evidence](docs/omiecid/README.md), [notebooks](notebooks/certification/README.md)
+  and [demos](demos/README.md).
 
-- **`MultiAgentConfig`**: Main configuration combining world and agent settings
-- **`World_EnvironmentConfig`**: Global environment parameters (data paths, episode settings, market hours)
-- **`MarketMaking_EnvironmentConfig`**: Market making and directional trading agent configuration (action spaces, reward functions, observation spaces)
-- **`Execution_EnvironmentConfig`**: Execution agent configuration (task types, action spaces, reward parameters)
+## Citing
 
-### Training Configuration
+If you use OmieCID-Simulator, please cite it as described in
+[`CITATION.cff`](CITATION.cff).
 
-Edit YAML files in `config/rl_configs/` to customize:
-- Number of parallel environments (default: 4096)
-- Training parameters (steps, learning rates, etc.)
-- Agent configurations (action spaces, reward functions)
-- Market data settings (resolution, episode length)
-
-Environment configurations are in `config/env_configs/`.
-
-## Citation
-
-If you use JaxMARL-HFT in your research, please cite:
+The limit-order-book core derives from JAX-LOB, through
+[JaxMARL-HFT](https://github.com/vmohl/JaxMARL-HFT). Please also cite JAX-LOB:
 
 ```bibtex
-@inproceedings{mohl2025jaxmarlhft,
-  title={JaxMARL-HFT: GPU-Accelerated Large-Scale Multi-Agent Reinforcement Learning for High-Frequency Trading},
-  author={Mohl, Valentin and Frey, Sascha and Leyland, Reuben and Li, Kang and Nigmatulin, George and Cucuringu, Mihai and Zohren, Stefan and Foerster, Jakob and Calinescu, Anisoara},
-  booktitle={Proceedings of the 6th ACM International Conference on AI in Finance (ICAIF)},
-  pages={18--26},
-  year={2025},
-  doi={10.1145/3768292.3770416}
+@misc{frey2023jaxlob,
+  title={JAX-LOB: A GPU-Accelerated limit order book simulator to unlock large scale reinforcement learning for trading},
+  author={Sascha Frey and Kang Li and Peer Nagy and Silvia Sapora and Chris Lu and Stefan Zohren and Jakob Foerster and Anisoara Calinescu},
+  year={2023},
+  eprint={2308.13289},
+  archivePrefix={arXiv},
+  primaryClass={q-fin.TR}
 }
 ```
 
-## Acknowledgements
-
-JaxMARL-HFT builds on:
-- [JaxMARL](https://github.com/FLAIROx/JaxMARL) — Multi-agent RL environments and algorithms in JAX
-- [JAX-LOB](https://github.com/KangOxford/jax-lob) — GPU-accelerated limit order book simulator
-
-## Disclaimer
-
-This software is provided for **research and educational purposes only**. It is not intended for live trading, financial decision-making, or any form of real-money deployment. The authors and contributors make no warranties regarding the accuracy, reliability, or suitability of this software for any particular purpose.
-
-**The authors assume no responsibility or liability for any financial losses, damages, or other consequences arising from the use of this software.** Use at your own risk.
-
 ## License
 
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+Apache License 2.0, see [`LICENSE`](LICENSE). Copyright and attribution
+notices are in [`NOTICE`](NOTICE); the authors are listed in [`AUTHORS`](AUTHORS).
+The regulatory documents in [`docs/omiecid/corpus/`](docs/omiecid/corpus/README.md)
+are OMIE documents, not covered by this licence.
+
+This software is for research and education. It is not intended for live trading.

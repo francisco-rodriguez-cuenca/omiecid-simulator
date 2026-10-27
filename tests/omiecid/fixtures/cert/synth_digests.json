@@ -1,0 +1,40 @@
+{
+  "algorithm": "blake2b-128",
+  "constructions": {
+    "C00.empty": "14fa8d8dad852966d0cc2e8e545999f0",
+    "C00.pad_only": "8711027ae7671c3d9ddb8b4da803a2e1",
+    "C00.status_gate": "5b6c29288a91368f2d1fd898f8970f9d",
+    "C01.validation": "2b7bd6c5239d06f096410eaf3745a6cc",
+    "C02.crossing_pair": "b602b93502dc6ed115fe3109c8c37893",
+    "C03.price_over_time": "5ab6a9465f8a1a951fe5f4c1f7162759",
+    "C03.priority_ladder": "321b9c63c73962b2b7afefda48c896db",
+    "C03.same_owner_pair": "80a4e209455814fd630eea42968fda4d",
+    "C04.cancellation": "2872106e0b3b7ffef5e1de59652e7b8b",
+    "C04.iceberg_cancel_fok": "6865e069b261cf12d4141ac78795596f",
+    "C05.aggressor_residual": "e190d2197ffc657243398468c103227a",
+    "C05.resting_residual": "e0f5b332cd1588e8be1ec8a0fa191933",
+    "C06.multi_level_walk": "c08f8ddfa4b98ce3d90554ccc7a535e0",
+    "C06.multi_level_walk_stress": "4d925ad8cccf7fe594bc6f72bdfeb72e",
+    "C07.ioc_regimes": "25a7a757e402403ae439a8e9e83ac506",
+    "C08.iceberg_cascade": "5ffb5c540eb151c335576904a9a6fb9a",
+    "C08.incoming_iceberg": "0f3ed6a65eacb0ec15567b81d766c18a",
+    "C08.rule3": "710ca239fd81a876b93127d6365351a1",
+    "C09.icewpi_drift": "d4052f451c6d1001f03fbd734d879bfa",
+    "C09.icewpi_wrong_sign": "27cbbdedf88e437c27edd07b86e044b2",
+    "C10.fok_hidden": "17be65aa0f3889d472067fd54037483e",
+    "C10.fok_icewpi": "4e46267d87d5b90725deb697eaef5069",
+    "C10.fok_visible": "df6113a825a624496c6bed1c0f42ad9d",
+    "C15.random_session": "df4d104b115333a5634b42835ce9c874"
+  },
+  "schema_version": 1,
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ]
+}

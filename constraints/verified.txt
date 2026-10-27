@@ -1,0 +1,26 @@
+# Exact versions verified with Python 3.10.12 (Linux x86_64).
+# Usage: pip install -c constraints/verified.txt "omiecid-simulator[validation]"
+jax==0.6.2
+jaxlib==0.6.2
+ml_dtypes==0.5.4
+opt_einsum==3.4.0
+scipy==1.15.3
+flax==0.10.7
+optax==0.2.7
+orbax-checkpoint==0.11.18
+tensorstore==0.1.78
+chex==0.1.90
+numpy==2.2.6
+pandas==2.3.3
+jupyter==1.1.1
+nbformat==5.11.1
+nbclient==0.11.0
+nbstripout==0.9.1
+ipykernel==7.3.0
+ipython==8.39.0
+jupyter_client==8.10.0
+jsonschema==4.26.0
+matplotlib==3.10.8
+pytest==9.0.2
+pytest-xdist==3.8.0
+tqdm==4.67.3

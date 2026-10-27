@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: OmieCID-Simulator
+type: software
+abstract: "A JAX-based Python package that reproduces and analyzes order matching in the Iberian CID market operated by OMIE."
+authors:
+  - given-names: "Francisco"
+    family-names: "Rodriguez-Cuenca"
+    email: "frodriguezc@comillas.edu"
+    orcid: "https://orcid.org/0000-0003-3097-5813"
+    affiliation: "Instituto de Investigación Tecnológica (IIT), ICAI School of Engineering, Universidad Pontificia Comillas"
+  - given-names: "Eugenio Francisco"
+    family-names: "Sánchez Úbeda"
+    email: "eugenio.sanchez@iit.comillas.edu"
+    orcid: "https://orcid.org/0000-0001-6470-8399"
+    affiliation: "Instituto de Investigación Tecnológica (IIT), ICAI School of Engineering, Universidad Pontificia Comillas"
+  - given-names: "Álvaro Jesús"
+    family-names: "López López"
+    email: "alvaro.lopez@iit.comillas.edu"
+    orcid: "https://orcid.org/0000-0001-9879-5603"
+    affiliation: "Instituto de Investigación Tecnológica (IIT), ICAI School of Engineering, Universidad Pontificia Comillas"
+version: 0.1.0
+license: Apache-2.0
+keywords:
+  - JAX
+  - limit order book
+  - continuous intraday market
+  - OMIE
+  - electricity markets
