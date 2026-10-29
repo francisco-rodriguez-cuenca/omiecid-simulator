@@ -70,8 +70,9 @@ Phase 2 acceptance criteria (the 8 ACs encoded here):
 
 Test discipline:
   - Module-level ``pytestmark = pytest.mark.jit`` (T1.1 marker discipline).
-  - NOT ``@pytest.mark.slow``. The harness traces five variants through
-    the already-warm jit cache (one compile, five trace reuses); the
+  - NOT ``@pytest.mark.slow``. The harness clears the ``_submit_order``
+    compile cache and traces five variants through it (one compile,
+    reused by the remaining variants); the
     synthetic fixture stays well below ``MAX_ICEBERGS``. The wall-clock
     budget is < 5 s warm, < 30 s cold per architect §6.
   - Synthetic fixtures only — no real OMIE replay (architect pin 1).
@@ -462,8 +463,8 @@ class TestACThreeFullDomainJitSmoke:
 
 class TestACThreeOneCompileAcrossFiveVariants:
     """AC (3) trace-count invariant: sweeping the 5 ExecRestriction rows
-    through the module-level jitted ``_submit_order`` causes exactly
-    one ``lower(...).compile()``.
+    through the module-level jitted ``_submit_order``, starting from a
+    cleared compile cache, causes exactly one ``lower(...).compile()``.
 
     Precedent: ``tests/omiecid/test_submit_order_jit_safe.py::TestACFiveTraceCountInvariantOneCompileForFourVariants::test_one_compile_across_all_four_exec_restrictions``
     (line 735-776). This is the P2-H3 reaffirmation extended to FIVE
@@ -479,14 +480,22 @@ class TestACThreeOneCompileAcrossFiveVariants:
     def test_one_compile_across_all_five_exec_restrictions(
         self, book, empty_state,
     ):
-        """Cache count after sweeping NON / IOC / FOK / ICE / ICEwPI
-        through the same ``_submit_order`` must be exactly 1.
+        """From an empty cache, sweeping NON / IOC / FOK / ICE / ICEwPI
+        through the same ``_submit_order`` must compile exactly once.
 
         The discriminator is a traced ``jnp.int32`` (per the P2-H2
         v5.20 amendment); the four ``ExecRestriction`` arms share one
         ``lax.switch`` artefact and ICEwPI is the ICE arm with
         non-zero ``ppd`` (no separate switch arm). Net: one cache
         entry across the five rows.
+
+        The compile cache of the shipped jitted ``_submit_order`` is
+        cleared first, so entries left by earlier tests in the same
+        process (other static configurations or shapes) do not pollute
+        the count. A delta measurement is not used: an earlier test with
+        the same configuration could already hold the extra entries a
+        static discriminator would create, and a delta of 0 would hide
+        that regression.
         """
         if not hasattr(_submit_order, "_cache_size"):
             pytest.skip(
@@ -494,6 +503,16 @@ class TestACThreeOneCompileAcrossFiveVariants:
                 "trace-count probe unavailable on this JAX version "
                 "(JaxLib < pjit-cache-public-api)."
             )
+
+        # Start from an empty cache of the shipped jit.
+        if hasattr(_submit_order, "clear_cache"):
+            _submit_order.clear_cache()
+        else:  # pragma: no cover - older jax
+            _submit_order._clear_cache()
+        assert _submit_order._cache_size() == 0, (
+            f"clearing the _submit_order compile cache must empty it; "
+            f"got _cache_size()={_submit_order._cache_size()}"
+        )
 
         # Sweep all five rows through the jitted ``_submit_order``.
         # We invoke each variant on a fresh ``empty_state`` so the

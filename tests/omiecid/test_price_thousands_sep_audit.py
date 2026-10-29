@@ -610,6 +610,44 @@ class TestPropagation:
 needs_real = pytest.mark.skipif(not REAL_DATA.is_dir(), reason="data/rawOMIE not present")
 
 
+def _reference_archive_manifest() -> list:
+    """File names of the reference archive on which the whole-archive floors
+    (478,932 dotted orders ``Precio`` cells, 10 dotted trades ``Precio``
+    cells) were measured: ``orders_D.1`` and ``trades_D.1`` for every D from
+    2025-05-31 to 2026-04-14 inclusive, except ``orders_20260228.1``,
+    ``orders_20260406.1`` and ``trades_20260406.1`` (absent from that
+    archive), plus ``marginalpdbc_D.1`` for D from 2025-06-01 to 2025-06-30.
+    """
+    from datetime import date, timedelta
+    absent = {"orders_20260228.1", "orders_20260406.1", "trades_20260406.1"}
+    names = []
+    d = date(2025, 5, 31)
+    while d <= date(2026, 4, 14):
+        for kind in ("orders", "trades"):
+            name = f"{kind}_{d:%Y%m%d}.1"
+            if name not in absent:
+                names.append(name)
+        d += timedelta(days=1)
+    names += [f"marginalpdbc_202506{day:02d}.1" for day in range(1, 31)]
+    return names
+
+
+def _first_missing_archive_file():
+    if not REAL_DATA.is_dir():
+        return None
+    return next((n for n in _reference_archive_manifest()
+                 if not (REAL_DATA / n).is_file()), None)
+
+
+_MISSING_ARCHIVE_FILE = _first_missing_archive_file()
+needs_archive = pytest.mark.skipif(
+    not REAL_DATA.is_dir() or _MISSING_ARCHIVE_FILE is not None,
+    reason=("data/rawOMIE not present" if not REAL_DATA.is_dir() else
+            f"reference OMIE archive incomplete: {_MISSING_ARCHIVE_FILE} missing from "
+            f"{REAL_DATA} (partial data/rawOMIE, e.g. after tutorial T03)"),
+)
+
+
 def _real_files(prefix: str) -> list:
     return sorted(p for p in REAL_DATA.iterdir() if p.name.startswith(prefix + "_"))
 
@@ -641,7 +679,7 @@ def archive_dot_cells():
     return found, uniq
 
 
-@needs_real
+@needs_archive
 @pytest.mark.slow
 class TestRealArchiveSweep:
     """slow: whole-archive sweep of every thousands-separated cell."""
@@ -718,8 +756,11 @@ class TestRealProductsDecode:
     @pytest.mark.parametrize("d_iso,k", _REAL_PRODUCTS)
     def test_loaded_prices_equal_independent_raw_parse(self, d_iso, k):
         prev = (np.datetime64(d_iso) - np.timedelta64(1, "D")).astype(str).replace("-", "")
-        if not (REAL_DATA / f"orders_{prev}.1").exists():
-            pytest.skip(f"orders_{prev}.1 absent")
+        for kind in ("orders", "trades"):
+            for day in (prev, d_iso.replace("-", "")):
+                if not (REAL_DATA / f"{kind}_{day}.1").exists():
+                    pytest.skip(f"{kind}_{day}.1 absent (partial data/rawOMIE, "
+                                "e.g. after tutorial T03)")
         o = np.asarray(odl.load_omie_orders(
             OMIEDataConfig(data_path=str(REAL_DATA), contract_id=k, delivery_date=d_iso)))
         ref, n_grouped = _ref_product_rows(d_iso, k)

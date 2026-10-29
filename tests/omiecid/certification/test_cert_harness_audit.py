@@ -962,7 +962,7 @@ class TestNextScenario:
         assert next_scenario(log) is None
 
     def test_real_log_starts_at_c00(self, tmp_path):
-        # The live log grows through C17, so "starts at C00" is asserted on the real log's
+        # The live log grows through C16, so "starts at C00" is asserted on the real log's
         # preamble/template reset to the empty state, and on the ladder order itself.
         log = tmp_path / "certification-log.md"
         log.write_text(_skeleton_log_text(), encoding="utf-8")
@@ -1188,12 +1188,12 @@ class TestCloseCertificate:
                       if ln.startswith("- **Merged:**"))
         assert "NOT merged" in merged and "omie/cert-c05-x" in merged and "deadbee" in merged
 
-    def test_c1_row_does_not_touch_c10_to_c17(self, scratch):
+    def test_c1_row_does_not_touch_c10_to_c16(self, scratch):
         _, cert = scratch
         before = cert.read_text()
         _close(scratch, Route.K6, _pass_payload("C01"), "C01")
         after = cert.read_text()
-        for num in range(10, 17):  # the release certificate's matrix ends at C16 (C17 is not shipped)
+        for num in range(10, 17):  # the release certificate's matrix ends at C16
             assert _matrix_row(after, num) == _matrix_row(before, num)
         assert _matrix_row(after, 1) != _matrix_row(before, 1)
 

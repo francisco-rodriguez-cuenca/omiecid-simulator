@@ -46,4 +46,5 @@ saved_npz/**
 
 # Certification results: published as a release asset with blake2b digests, not committed
 notebooks/certification/results/*.json
+results-asset/
 demos/*_omie_real*/

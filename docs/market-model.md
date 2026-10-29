@@ -1,8 +1,8 @@
 # Market model
 
 OmieCID-Simulator reproduces order matching in the Iberian continuous intraday
-market (CID): the MIBEL segment of the European Single Intraday Coupling (SIDC,
-formerly XBID), operated by OMIE as the Iberian NEMO. This guide summarises what
+market (CID): the MIBEL (Iberian Electricity Market) segment of the European Single Intraday Coupling (SIDC,
+formerly XBID), operated by OMIE as the Iberian NEMO (Nominated Electricity Market Operator). This guide summarises what
 the simulator models. Each point links to the section of the
 [market specification](omiecid/market-spec.md) it comes from. That specification
 cites the regulatory sources (OMIE market rules, the SIDC matching algorithm
@@ -36,10 +36,10 @@ trades in it is in [Sessions](sessions.md); what the simulator does not do is in
 
 ## Trading window and gate closure
 
-- **Gate opening.** All 96 contracts of delivery day $D$ open together at about
-  15:20 on $D-1$, after the first intraday auction
+- **Gate opening (GOT).** All 96 contracts of delivery day $D$ open together at
+  about 15:20 on $D-1$, after the first intraday auction
   ([§3.1](omiecid/market-spec.md#31-continuous-market-gate-times)).
-- **Gate closure.** Closure is aligned to the delivery hour. The four
+- **Gate closure (GCT).** Closure is aligned to the delivery hour. The four
   quarter-hours of one hour close together, one hour before that hour starts:
   $\mathrm{GCT}(k) = 60\lfloor k/4 \rfloor - 60$ minutes from $D$ 00:00
   ([§3.1](omiecid/market-spec.md#31-continuous-market-gate-times),
@@ -111,9 +111,9 @@ trades in it is in [Sessions](sessions.md); what the simulator does not do is in
 
 An order is rejected when its price is outside $[-9{,}999,\ +9{,}999]$ EUR/MWh,
 its quantity is outside $[0.1,\ 999]$ MW, the contract is not open, an ICEwPI has
-an increment of the wrong sign, or an iceberg's peak exceeds its total quantity
+an increment of the wrong sign, or an iceberg's peak is zero or less or exceeds its total quantity
 ([§5.4](omiecid/market-spec.md#54-order-rejection-conditions)). The guarantee
-(operating limit) and TSO availability checks of §5.4 are not modelled.
+(operating limit) and transmission system operator (TSO) availability checks of §5.4 are not modelled.
 
 ## Price-time priority and matching
 
@@ -131,7 +131,7 @@ an increment of the wrong sign, or an iceberg's peak exceeds its total quantity
 - **No crossed book.** Every crossing created during a matching process,
   including iceberg regeneration cascades, is resolved inside that process
   ([§4.2.1 Rule 4](omiecid/market-spec.md#421-iceberg-interaction-semantics-simulator-design-decisions)).
-- **No self-trade prevention.** Matching ignores ownership: a participant's buy
+- **No self-trade prevention** (provisional). Matching ignores ownership: a participant's buy
   can trade against its own sell
   ([§6.6](omiecid/market-spec.md#66-self-trade-prevention-stp-none-at-xbid-level);
   [OQ-12](omiecid/open-questions.md#oq-12--anti-self-match--self-trade-prevention-scope)).
@@ -140,6 +140,8 @@ an increment of the wrong sign, or an iceberg's peak exceeds its total quantity
 - **Anonymity.** The book shows prices and quantities only; a participant sees
   its own trades, not the counterparty
   ([§7](omiecid/market-spec.md#7-anonymity-and-information-visibility)).
+  In OMIE a participant also sees the price and volume of the trades made in its
+  area, without names; this version offers no participant call for them.
 - **In the simulator.** The session stamps the participant's order with the
   book's arrival counter after the step's background flow, so the order queues
   behind every earlier arrival at its price.
@@ -167,7 +169,7 @@ the nearest tick before the bound check.
 
 ## Settlement and sign convention
 
-The value of a trade is $V = Q \cdot p \cdot d$, with $Q$ in MW, $p$ in EUR/MWh
+The value of a trade is $V = p \cdot q \cdot d$, with $p$ in EUR/MWh, $q$ in MW
 and $d$ in hours ([§8.1](omiecid/market-spec.md#81-trade-settlement-formula)).
 The sell leg books $+V$ and the buy leg $-V$, so a participant's realized result
 is
@@ -180,11 +182,8 @@ are outside the market and are not computed
 ([§8.5](omiecid/market-spec.md#85-closing-out-open-positions)). A self-match
 nets to zero.
 
-In a [session](sessions.md#settlement), the participant's settled result is
-`state.agent_cash`, the realized cash summed fill by fill. `compute_agent_pnl`
-settles a trade tape exactly in integer ticks; over the participant's own tape it
-is exact only if no step had passive fills in both directions (see
-[Limitations](limitations.md#settlement-over-the-participants-trade-tape)).
+In a session the settled result is `state.agent_cash` (see
+[Sessions](sessions.md#settlement)).
 During a session, `FillReport.inventory_delta` is positive for a buy and
 `cash_delta_eur` positive for a sale. Scenario C12 certifies that the cash leg of
 every trade sums to zero.

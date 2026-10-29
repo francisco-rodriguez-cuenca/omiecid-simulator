@@ -40,7 +40,9 @@ keys and dates once.
 
 from __future__ import annotations
 
+import os
 import pathlib
+from datetime import date, timedelta
 import re
 
 import jax
@@ -338,7 +340,32 @@ def real_cache(tmp_path_factory):
     return str(tmp_path_factory.mktemp("interior_pad_npz")) + "/"
 
 
+def _first_missing_product_file(data_dir, dates):
+    """First missing session file of the products of ``dates``, else ``None``.
+
+    A product (D, k) reads ``orders_{D-1}.1``, ``orders_{D}.1``,
+    ``trades_{D-1}.1`` and ``trades_{D}.1``; all four must be present for every
+    delivery date, otherwise the loader refuses the product as incomplete.
+    """
+    for d_iso in dates:
+        d = date.fromisoformat(d_iso)
+        for kind in ("orders", "trades"):
+            for day in (d - timedelta(days=1), d):
+                name = f"{kind}_{day:%Y%m%d}.1"
+                if not os.path.isfile(os.path.join(str(data_dir), name)):
+                    return name
+    return None
+
+
+def _skip_unless_products_present(data_dir, dates):
+    missing = _first_missing_product_file(data_dir, dates)
+    if missing is not None:
+        pytest.skip(f"real OMIE data incomplete: {missing} missing from {data_dir} "
+                    "(partial data/rawOMIE, e.g. after tutorial T03)")
+
+
 def _load_tapes(cache, contract_ids, dates):
+    _skip_unless_products_present(DATA_PATH, dates)
     from omiecid_simulator.jaxomiecid.omie_data_loader import build_fixed_tape_set
     return np.asarray(build_fixed_tape_set(
         data_path=str(DATA_PATH), contract_ids=contract_ids, delivery_dates=dates,

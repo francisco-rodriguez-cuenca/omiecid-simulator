@@ -22,7 +22,7 @@ emits its verdict.
 | [`C09_icewpi_price_drift`](C09_icewpi_price_drift.ipynb) | Each new slice of a price-incremented iceberg moves its price by the increment, in the right direction; matching stops at the first slice that no longer crosses. |
 | [`C10_fok_and_hidden_volume`](C10_fok_and_hidden_volume.ipynb) | The fill-or-kill pre-check counts visible, hidden and drifted iceberg volume correctly, and a killed order leaves the book byte-identical. |
 | [`C11_gct_expiry`](C11_gct_expiry.ipynb) | At gate closure every resting order (GFS and GTD) is removed, without creating trades. |
-| [`C12_settlement_cash_leg`](C12_settlement_cash_leg.ipynb) | Each trade settles at $V = Q \cdot p \cdot d$, and cash sums to zero across participants. |
+| [`C12_settlement_cash_leg`](C12_settlement_cash_leg.ipynb) | Each trade settles at $V = p \cdot q \cdot d$, and cash sums to zero across participants. |
 | [`C13_anonymity`](C13_anonymity.ipynb) | The book is shown anonymously, and a participant sees only its own trades. |
 | [`C14_capacity_edges`](C14_capacity_edges.ipynb) | At each fixed capacity of the engine, the documented behaviour (flag raised, quantity conserved) is what happens. |
 | [`C15_randomised_fuzz`](C15_randomised_fuzz.ipynb) | Random sessions across the parameter space keep every invariant, eagerly and compiled. |
@@ -32,9 +32,6 @@ emits its verdict.
 - The evidence: [`certificate.md`](../../docs/omiecid/certificate.md) and
   [`certification-log.md`](../../docs/omiecid/certification-log.md).
 - How the evidence fits together: [Validation](../../docs/validation.md).
-
-The ladder specification also describes a scenario C17 (replay fidelity of the
-public data), which is not part of this release.
 
 ## Layout
 
@@ -69,12 +66,14 @@ the template and on every notebook.
 
 ## Running a notebook
 
-Install the validation tools (`pip install ".[validation]"`), then, from the
-repository root:
+Install the package and set up the notebook prerequisites as described in the
+[installation section of the README](../../README.md#installation). Then, from
+the repository root:
 
 ```bash
-# interactively (the kernel needs the repository root on PYTHONPATH)
-PYTHONPATH=. jupyter lab notebooks/certification/C02_single_crossing_pair.ipynb
+# interactively, results to a scratch folder (see the README, section 3)
+mkdir -p /tmp/omiecid-results
+OMIE_CERT_RESULTS_DIR=/tmp/omiecid-results PYTHONPATH="$PWD" jupyter lab notebooks/certification/C02_single_crossing_pair.ipynb
 
 # headless, as the test suite runs it (results go to a fresh temporary directory)
 CUDA_VISIBLE_DEVICES="" PYTHONPATH=. python -c "
@@ -89,19 +88,20 @@ print(g.passed, g.results['status'])"
 `results_dir=` / `fixture_dir=` are given. A notebook passes only if it executes
 cleanly **and** leaves exactly one valid results JSON whose status is `PASS`.
 `tests/omiecid/certification/test_certified_notebooks.py` re-executes every
-certified notebook this way.
+certified notebook this way. Some notebooks take several minutes on CPU.
 
-Run interactively, without `OMIE_CERT_RESULTS_DIR`, a notebook writes its result
-to `results/`.
+Run interactively without `OMIE_CERT_RESULTS_DIR`, a notebook writes to
+`results/` and replaces any file of the same name there, including downloaded
+results; always set it to a scratch folder.
 
 ## Results of the release run
 
-The results of the release run (about 75 MB) will be published as an asset of
-the GitHub release, with blake2b digests, not committed. Once it is published,
-download the asset, check
-the digests and place `C00.json` … `C16.json` in `results/` (or set
-`OMIE_CERT_RESULTS_DIR` to their directory). The audit tests that read them skip
-until they are present; see [Testing](../../docs/testing.md#certification-results).
+The results of the release run are not committed. They are published as the
+pre-release
+[`certification-results-2026-10`](https://github.com/francisco-rodriguez-cuenca/omiecid-simulator/releases/tag/certification-results-2026-10).
+[Testing](../../docs/testing.md#certification-results) describes them, how to
+use them with the audit tests, and how `OMIE_CERT_RESULTS_DIR` is read and
+written.
 
 ## Output stripping
 

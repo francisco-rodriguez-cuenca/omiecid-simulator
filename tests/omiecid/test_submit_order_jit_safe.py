@@ -747,11 +747,18 @@ class TestACFiveTraceCountInvariantOneCompileForFourVariants:
     def test_one_compile_across_all_four_exec_restrictions(
         self, book, empty_state
     ):
-        """The trace-count after sequencing all four variants must be 1.
+        """From an empty cache, the four variants must compile exactly once.
 
-        The ``ExecRestriction`` discriminator is a traced ``jnp.int32`` per
-        the v5.20 card; the four variants share one ``lax.switch`` arm and
-        therefore one compiled artefact.
+        The ``ExecRestriction`` discriminator is a traced ``jnp.int32``; the
+        four variants share one ``lax.switch`` arm and therefore one
+        compiled artefact.
+
+        The compile cache of the shipped jitted ``submit_order`` is cleared
+        first, so entries left by earlier tests in the same process (other
+        static configurations or shapes) do not pollute the count. A delta
+        measurement is not used: an earlier test with the same configuration
+        could already hold the extra entries a static discriminator would
+        create, and a delta of 0 would hide that regression.
         """
         jitted = _resolve_jitted_submit_order()
         if not hasattr(jitted, "_cache_size"):
@@ -760,7 +767,17 @@ class TestACFiveTraceCountInvariantOneCompileForFourVariants:
                 "trace-count probe unavailable on this JAX version"
             )
 
-        # Warmup — first call compiles; subsequent variants must reuse.
+        # Start from an empty cache of the shipped jit.
+        if hasattr(jitted, "clear_cache"):
+            jitted.clear_cache()
+        else:  # pragma: no cover - older jax
+            jitted._clear_cache()
+        assert jitted._cache_size() == 0, (
+            f"clearing the submit_order compile cache must empty it; "
+            f"got _cache_size()={jitted._cache_size()}"
+        )
+
+        # First call compiles; subsequent variants must reuse.
         for idx, variant in enumerate((
             ExecRestriction.NON,
             ExecRestriction.IOC,

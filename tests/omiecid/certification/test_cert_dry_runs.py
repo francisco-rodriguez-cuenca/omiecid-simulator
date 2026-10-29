@@ -6,7 +6,7 @@ Module-scoped fixtures build scratch ``certification-log.md`` and
 certificate structure, with entries, TOC rows, the awaiting list, coverage-matrix
 status cells and scenario sections reset to the empty state (orchestrator ruling,
 a recorded deviation from H12's "copy the real files exactly": the dry runs test
-the K0-K7 cycle mechanics, not the live ladder state, which grows through C17).
+the K0-K7 cycle mechanics, not the live ladder state, which grows through C16).
 ``_template.ipynb`` is copied as ``C90_dry_pass.ipynb`` and
 ``C91_dry_fail.ipynb``. Each copy runs through
 ``execute_notebook``; its route comes from ``route_k5`` (audit twin passed, no

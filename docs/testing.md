@@ -8,11 +8,11 @@ reading the implementation.
 
 ## Running the suite
 
-Install the validation extra, which brings `pytest` and `pytest-xdist`, then run
-from the repository root:
+Install the package as described in the
+[installation section of the README](../README.md#installation), which also
+gives a quick check. To run the full suite, from the repository root:
 
 ```bash
-pip install ".[validation]"
 CUDA_VISIBLE_DEVICES="" PYTHONPATH=. python -m pytest tests/omiecid/
 ```
 
@@ -65,21 +65,34 @@ runs are much faster. Deleting `.jax_cache/` is always safe.
 
 The certification audit tests (`tests/omiecid/certification/test_C<nn>_audit.py`
 and some harness tests) read the results JSON written by the certification
-notebooks. These files are not committed: they will be published as an asset of
-the GitHub release (about 75 MB, with blake2b digests). Until they are present,
-the tests that need them **skip** with the message "results JSON absent".
+notebooks. These files are not committed. The results of the release run are
+published as the pre-release
+[`certification-results-2026-10`](https://github.com/francisco-rodriguez-cuenca/omiecid-simulator/releases/tag/certification-results-2026-10):
+`C00.json` … `C16.json` (80.8 MB in total) and their 256-bit BLAKE2b digests in
+`DIGESTS.b2`. Until the files are present, the tests that need them **skip**
+with the message "results JSON absent".
 
-To run them, once the asset is published, download it, check the digests, and place
-`C00.json` … `C16.json` in:
+To run them, download the pre-release and check the digests, as the
+[installation section of the README](../README.md#3-before-running-a-certification-notebook)
+shows. Then either place `C00.json` … `C16.json` in:
 
 ```text
 notebooks/certification/results/
 ```
 
-or set `OMIE_CERT_RESULTS_DIR` to the directory that holds them. You can also
-produce your own results by running the notebooks (see
-[Validation](validation.md#re-running-a-notebook)).
+or set `OMIE_CERT_RESULTS_DIR` to the folder that holds them.
 
-The merge-gate test `tests/omiecid/certification/test_certified_notebooks.py`
-re-executes every certified notebook headless and does not need the asset; it is
-the slowest part of the suite.
+`OMIE_CERT_RESULTS_DIR` is read and written:
+
+- the audit tests **read** the results from the folder it names if it is set,
+  otherwise from `notebooks/certification/results/`;
+- a notebook run **writes** its `Cnn.json` to the same folder, and replaces the
+  file of the same name.
+
+So never point it at the downloaded files when you run a notebook; use a
+scratch folder. You can also produce your own results by running the notebooks
+(see [Running a notebook](../notebooks/certification/README.md#running-a-notebook)).
+
+The test `tests/omiecid/certification/test_certified_notebooks.py` re-executes
+every certified notebook headless and does not need the published results; it
+is the slowest part of the suite.

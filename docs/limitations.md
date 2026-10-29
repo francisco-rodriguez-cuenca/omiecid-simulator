@@ -30,8 +30,10 @@ same items from the certification side ([certificate](omiecid/certificate.md)).
 
 4. **The Session is verified, not certified separately.** The certification
    ladder certifies the matching engine. The `Session` is the research
-   environment of the project with its reinforcement-learning layers removed; it
-   is verified by a byte-identical parity check against that research
+   environment with its reinforcement-learning layers removed. The research
+   environment is the reinforcement-learning environment of the research
+   project this package was extracted from (not part of this release). The
+   `Session` is verified by a byte-identical parity check against that research
    environment, step by step, eagerly, under `jit` and under `vmap`; the only
    allowed difference is the attribution of the passive side of a self-match,
    which the comparator checks separately (see
@@ -40,15 +42,8 @@ same items from the certification side ([certificate](omiecid/certificate.md)).
 
 ## Early gate closure under the span-scaled clock
 
-The default `"span_scaled"` clock rounds to the nearest minute and assumes the
-tape's timestamps are seconds from GOT spread over $[0, S]$, with $S$ =
-`tape_seconds_span` (by default the largest timestamp over the whole tape set).
-So `done` can fire at the first slice whose largest timestamp is within half
-a scaled minute of $S$, possibly several slices before the last real one, and
-at the very first step for tapes whose timestamps are offset from GOT or
-clustered near $S$. Since $S$ is shared by the whole set, a shorter tape in a
-stack may never reach `done`. Calls after `done` are ignored, so the tape rows
-after the slice that set `done` are **not replayed** (see
+With the default `"span_scaled"` clock, `done` can fire before the last tape
+row, and the rows after it are not replayed (see
 [Sessions](sessions.md#configuration), *Clocks*).
 
 **Full-tape replay recipe.** Set `tape_seconds_span` to at least twice the
@@ -115,3 +110,18 @@ limitation; separate passive slots per direction are planned for v0.2. See
 - One contract per session; no cross-contract or cross-border flow.
 - No reinforcement-learning layer: actions, rewards and observations are left to
   the user.
+
+## Known issues
+
+- **A contract's `gct_minutes` field is wrong for three of every four
+  quarter-hours.** `generate_contracts()` sets it to one hour before each
+  quarter-hour's delivery start. In the Iberian continuous market, gate closure
+  is aligned to the delivery hour: the four quarter-hours of an hour all close
+  one hour before that hour starts. For slot $k$,
+  $\mathrm{GCT}(k) = 60\lfloor k/4 \rfloor - 60$ minutes from the start of the
+  delivery day (see [Market model](market-model.md#trading-window-and-gate-closure)).
+  The two agree only for the first quarter-hour of each hour. The field is a
+  label: the order book never reads it, and a `Session` closes on its own
+  gate-closure setting (`gct_minutes_from_got`). Matching, expiry and the
+  certification results are not affected. Compute gate closure from the
+  formula.

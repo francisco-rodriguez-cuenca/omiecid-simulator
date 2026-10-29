@@ -19,8 +19,8 @@ gives 395 steps:
 
 These numbers vary with the machine, the JAX version and the configuration
 (above all `nTrades`, `book_depth`, `max_icebergs` and `orders_per_step`). To
-measure the bare engine on your machine, run the replay benchmark demo (see
-[demos](../demos/README.md)).
+measure the bare engine on your machine, run
+[the benchmark demo](../demos/README.md), which replays one real contract.
 
 ## What triggers a compile
 
@@ -49,8 +49,8 @@ jax.config.update("jax_persistent_cache_min_entry_size_bytes", -1)
 jax.config.update("jax_persistent_cache_min_compile_time_secs", 0.0)
 ```
 
-Set this before the first compile. The test suite and the demos already do it.
-Deleting the cache directory is always safe.
+Set this before the first compile. The test suite and the benchmark demo
+already do it. Deleting the cache directory is always safe.
 
 ## Running faster
 
@@ -59,16 +59,29 @@ Deleting the cache directory is always safe.
   `step_env`, inside one `jax.jit`, runs it as one program (about three times
   faster in the measurement above, and it compiles faster too). The participant's
   decisions must then be written in JAX.
-- **Batch with `jax.vmap`.** Many independent sessions (different tapes or
-  different participant behaviour) run in parallel under `jax.vmap(step_env)`,
-  inside an outer `jax.experimental.enable_x64()` context (see
-  [Sessions](sessions.md#batching) and [Limitations](limitations.md)).
+- **On a CPU, loop over a compiled session; do not batch with `jax.vmap`.**
+  Many independent sessions (different tapes or different participant
+  behaviour) can run as one batch under `jax.vmap`, inside an outer
+  `jax.experimental.enable_x64()` context (see [Sessions](sessions.md#batching)
+  and [Limitations](limitations.md)). The results are the same as running the
+  sessions one at a time, but on a CPU the batch is much slower: under `vmap`,
+  both branches of every `jax.lax.cond` in the engine run for every session
+  (see the [JAX documentation of `lax.cond`](https://docs.jax.dev/en/latest/_autosummary/jax.lax.cond.html)),
+  and the cost of a batch grows with its size. In tutorial
+  [T09](../tutorials/T09_scaling.ipynb), on a CPU, a batch of four sessions took
+  about 13 s, about 3.3 s per session, while the same sessions compiled without
+  `vmap` took about 0.02 s each.
+  On a CPU, compile one session (a `jax.lax.scan` over `step_env` inside
+  `jax.jit`) and call it in a loop over seeds and tapes.
 - **Size the arrays to the problem.** `nTrades`, `book_depth` and `max_icebergs`
   set fixed array sizes; larger values cost memory and compile time on every
   step. Keep `nTrades` large enough not to saturate, but no larger.
 - **GPU.** Install the `cuda12` extra to run on an NVIDIA GPU. The engine's
   matching loop is sequential, so a single session is not necessarily faster on
-  a GPU; measure your own workload. The tests and demos default to the CPU.
+  a GPU. Whether a `jax.vmap` batch is faster than a loop on a GPU has not been
+  measured; tutorial [T09](../tutorials/T09_scaling.ipynb) has a cell that
+  measures both on your GPU. Measure your own workload. The tests and the
+  benchmark demo default to the CPU.
 
 ## Memory
 

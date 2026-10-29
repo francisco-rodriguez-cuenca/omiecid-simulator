@@ -56,16 +56,15 @@ Items (6) and (7) are not in this file:
   bug had it existed). The sentinels are selected from this file's sweep
   but authored into the audit file, not here.
 
-Item (8) — demo oracle — is NOT a pytest test:
-------------------------------------------------
-Per the story card, the developer must execute (at implementation time)::
-
-    PYTHONPATH=. .venv/bin/python3 demos/generate_real_data_demo.py
-
-and verify that the regenerated ``demos/20260112_omie_real/demo.html``
-step-4 snapshot accepts order #991 (ARACA/ARACC01 SELL NON 129.68 @ 2.50 MW).
-This is a developer checklist item and an architecture-audit check, not a
-pytest test. Recorded here so future maintainers know where to look.
+Item (8) — real-data oracle — is NOT a pytest test:
+-----------------------------------------------------
+To check this case against real OMIE data, run the real-data tutorial
+``tutorials/T03_real_data.ipynb`` (contract 81, delivery day 2026-01-12)
+and verify that the validator accepts every order matching these fields:
+a SELL, limit (NON), at 129.68 EUR/MWh, for 2.5 MW. T03 selects the order
+by these fields, not by loader index (the index depends on the loader's
+ordering and can change). This is a manual check, not a pytest test.
+Recorded here so future maintainers know where to look.
 """
 from __future__ import annotations
 
@@ -197,8 +196,9 @@ def _known_failing_prices_f32() -> np.ndarray:
 # ---------------------------------------------------------------------------
 
 class TestNamedRegression:
-    """The canonical 129.68 EUR/MWh case from the 2026-01-12 demo oracle
-    (order #991 — ARACA/ARACC01 SELL NON 129.68 @ 2.50 MW, step 4)."""
+    """The canonical 129.68 EUR/MWh case: a SELL, limit (NON), at 129.68 EUR/MWh
+    for 2.5 MW, from contract 81 of delivery day 2026-01-12 (see item (8) above
+    and tutorial T03)."""
 
     def test_price_129_68_accepted(self, config):
         """Validator must accept an on-tick SELL @ 129.68 EUR/MWh, 2.50 MW.

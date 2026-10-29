@@ -1,11 +1,12 @@
 # OmieCID-Simulator
 
-**OmieCID-Simulator** is a JAX-based Python package that reproduces and analyzes order matching in the Iberian CID market, the MIBEL segment of the European Single Intraday Coupling operated by OMIE, with out-of-the-box compatibility with public OMIE data.
+**OmieCID-Simulator** is a JAX-based Python package that reproduces and analyzes order matching in the Iberian continuous intraday (CID) market, the MIBEL segment of the European Single Intraday Coupling operated by OMIE, with out-of-the-box compatibility with public OMIE data.
 
 It contains:
 
 - the OMIE matching engine: one limit order book per quarter-hour contract, with
-  price-time priority, limit (NON), IOC, FOK, iceberg and ICEwPI orders,
+  price-time priority, limit (NON), immediate-or-cancel (IOC), fill-or-kill (FOK),
+  iceberg and iceberg-with-price-increment (ICEwPI) orders,
   cancellation, gate closure and settlement;
 - the data pipeline: a loader for the public OMIE order and trade files, and a
   generator of synthetic order tapes;
@@ -20,19 +21,106 @@ Everything is written in JAX: the session step is compiled once and can be
 
 ## Installation
 
-Python 3.10 or later. From a clone of this repository:
+One path, from a clone to a passing check. Copy the commands in order; after
+`cd omiecid-simulator`, every command runs from the repository root. Every
+other page links here.
+
+### 1. Create the environment and install
+
+Python **3.10** is the verified version: `constraints/verified.txt` pins the
+versions this release was verified with, under Python 3.10.12.
 
 ```bash
-pip install .                         # core: jax, flax, chex, numpy, pandas
-pip install ".[validation]"           # + notebooks and the test suite
-pip install ".[examples]"             # + the demo scripts
-pip install ".[cuda12]"               # + the NVIDIA GPU backend
-pip install -c constraints/verified.txt ".[validation]"   # exact verified versions
+git clone https://github.com/francisco-rodriguez-cuenca/omiecid-simulator.git
+cd omiecid-simulator
+python3.10 -m venv .venv
+source .venv/bin/activate
+pip install -c constraints/verified.txt -e ".[validation,examples]"
 ```
+
+What the flags do:
+
+- `-c constraints/verified.txt` installs the exact versions the release was
+  verified with.
+- `-e` (editable) keeps the install pointed at your clone. The notebooks, tests
+  and scripts in the clone, and any edit you make, are what Python imports.
+- `[validation,examples]` adds the notebook tooling, the test runner and the
+  demo's progress bar.
 
 The distribution is named `omiecid-simulator` (`pip install omiecid-simulator`
 once it is published on PyPI); the import package is `omiecid_simulator`.
-Everything runs on CPU; the GPU is optional.
+
+### 2. Verify the installation
+
+```bash
+python -c "from omiecid_simulator.omiecid.omie_session import Session; print('import ok')"
+python -m pytest -n 4 -m "not slow" -q
+```
+
+The first line prints `import ok`. On a machine with an NVIDIA GPU, JAX may
+first print a warning that it falls back to the CPU; with this install that is
+expected. The second runs the quick check. The first run compiles the JAX
+programs and takes about 20 minutes with four workers on the CPU. The compiled
+programs are cached in `.jax_cache/`, so later runs take about two minutes.
+
+- The **full** suite (`python -m pytest`) takes about **3 hours on CPU**,
+  mostly because of the C16 multi-contract scenario.
+- The suite uses 24 workers by default (`-n 24` in `pyproject.toml`). On a
+  smaller machine, pass `-n 4`.
+
+See [Testing](docs/testing.md) for markers and lighter selections.
+
+### 3. Before running a certification notebook
+
+Three things are easy to miss:
+
+- **The repository root importable.** The Jupyter kernel starts inside
+  `notebooks/certification/` and must import
+  `notebooks.certification.cert_support`. The editable install of step 1
+  already makes the root importable. With a non-editable install, put the root
+  on `PYTHONPATH` as an absolute path, as the command below does.
+- **`OMIE_CERT_RESULTS_DIR` set to a scratch folder.** Otherwise a run
+  overwrites `notebooks/certification/results/`.
+- **The certification results, downloaded and checked.** They are published as
+  the pre-release `certification-results-2026-10` (17 JSON files and their
+  digests in `DIGESTS.b2`).
+
+```bash
+gh release download certification-results-2026-10 \
+   -R francisco-rodriguez-cuenca/omiecid-simulator -D results-asset
+(cd results-asset && b2sum -l 256 -c DIGESTS.b2)
+
+mkdir -p /tmp/omiecid-results
+OMIE_CERT_RESULTS_DIR=/tmp/omiecid-results PYTHONPATH="$PWD" jupyter lab notebooks/certification/
+```
+
+**Keep `-l 256`.** The digests are 256-bit BLAKE2b. GNU `b2sum -c` also reads
+the length from each line of `DIGESTS.b2`, but `b2sum` without `-l 256`
+computes 512-bit digests, which do not match the file.
+
+Without the GitHub CLI (`gh`), download every file of the
+[`certification-results-2026-10` release page](https://github.com/francisco-rodriguez-cuenca/omiecid-simulator/releases/tag/certification-results-2026-10)
+in a browser, put them in one folder named `results-asset`, and run the same
+`b2sum` line.
+
+The audit tests read the results from the folder named by
+`OMIE_CERT_RESULTS_DIR` if it is set, otherwise from
+`notebooks/certification/results/`. To test against the downloaded files, run
+them with `OMIE_CERT_RESULTS_DIR="$PWD/results-asset"`. Never use that folder
+as the scratch folder of a notebook run, because a run writes its `Cnn.json`
+there and replaces the published one. See
+[Testing](docs/testing.md#certification-results).
+
+### 4. Hardware
+
+- Everything runs on the CPU by default.
+- The GPU is opt-in. Install with the `cuda12` extra
+  (`".[validation,examples,cuda12]"`); `constraints/verified.txt` does not pin
+  the CUDA wheels, so pip installs their latest compatible versions. Select the
+  device with the `JAX_PLATFORMS` environment variable (`cpu` or `cuda`).
+- Batching sessions with `jax.vmap` needs 64-bit mode
+  (`jax.experimental.enable_x64()`), as [Sessions](docs/sessions.md#batching)
+  shows.
 
 ## Quickstart
 
@@ -99,7 +187,7 @@ inventory +0.0 MW, settled P&L -0.375 EUR (trade-tape check -0.375 EUR)
 
 The bid at 48.50 EUR/MWh rests behind the background book and is hit at step 3;
 the sell at step 4 crosses the best bid (47.00). A trade's value is
-$V = Q \cdot p \cdot d$ with $d = 0.25$ h, so the round trip settles at
+$V = p \cdot q \cdot d$ with $d = 0.25$ h, so the round trip settles at
 $(47.00 - 48.50) \cdot 1 \cdot 0.25 = -0.375$ EUR. `state.agent_cash` is the
 settled result; `compute_agent_pnl` over `state.agent_trades` agrees only when no
 step had passive fills in both directions (see [Sessions](docs/sessions.md#settlement)
@@ -134,10 +222,13 @@ session = Session({
 })
 ```
 
-Use `session_clock="got_relative"` for real data. See [Data](docs/data.md).
+Use `session_clock="got_relative"` for real data. See [Data](docs/data.md) and
+tutorial [T03](tutorials/T03_real_data.ipynb).
 
 ## Documentation
 
+- [Tutorials](tutorials/README.md): nine executed notebooks, from a first
+  contract to running many sessions fast.
 - [Market model](docs/market-model.md): what the engine implements, rule by rule.
 - [Modelling assumptions](docs/modelling-assumptions.md): rulings and simplifications.
 - [Sessions](docs/sessions.md): the `Session` API.
@@ -146,7 +237,7 @@ Use `session_clock="got_relative"` for real data. See [Data](docs/data.md).
 - [Testing](docs/testing.md) and [Performance](docs/performance.md).
 - [Limitations](docs/limitations.md).
 - [Certification evidence](docs/omiecid/README.md), [notebooks](notebooks/certification/README.md)
-  and [demos](demos/README.md).
+  and [the benchmark demo](demos/README.md).
 
 ## Citing
 

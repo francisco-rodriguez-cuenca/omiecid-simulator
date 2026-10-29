@@ -15,7 +15,7 @@ A tape is an `(N, 13)` int32 array, one order per row:
 | 2 | `price` | Price tick offset from the lower bound: $(p - p_{\min}) / 0.01$. |
 | 3 | `quantity` | Quantity in ticks of 0.1 MW. |
 | 4 | `order_id` | Positive; padding rows carry $\le 0$. |
-| 5 | `agent_id` | Anonymous participant number. |
+| 5 | `agent_id` | Anonymous participant number (in a loaded OMIE tape, one per bidding unit). |
 | 6 | `timestamp` | Seconds (see below); padding rows carry $\le 0$. |
 | 7 | `exec_restriction` | 0 NON, 1 IOC, 2 FOK, 3 ICE. |
 | 8 | `validity` | 0 GFS, 1 GTD. |
@@ -47,8 +47,10 @@ python -m scripts.download_omie_data --months 202506 --dry-run             # no 
 ```
 
 Options: `--data-type` (`orders`, `trades` or `marginalpdbc`, the day-ahead
-marginal prices), `--output-dir` (default `data/rawOMIE`), `--keep-zips`. A month
-already on disk is skipped. The files land as:
+marginal prices) and `--output-dir` (default `data/rawOMIE`). The downloaded
+archives are always kept, in a `.zips` folder inside the output folder
+(`data/rawOMIE/.zips` by default); the `--keep-zips` option has no effect. A
+month already on disk is skipped. The extracted files land as:
 
 ```text
 data/rawOMIE/
@@ -84,7 +86,11 @@ trades = load_omie_trades(cfg)    # (M, 6) int32: the trades OMIE actually print
   ([OQ-32](omiecid/open-questions.md#oq-32--same-second-arrival-order-in-replay)).
 - **Participants** are numbered from the (`Agente`, `Unidad`) pair; the same
   numbering is shared by orders and trades.
-- **All zones** (Spain, Portugal and cross-border) are included.
+- **Both Iberian bidding zones** (Spain and Portugal) are included; the loader
+  does not filter by zone. OMIE's files hold no order from outside Iberia, and a
+  cross-border trade appears in the trade file with the non-Iberian side blank
+  ([Modelling assumptions › Simplifications](modelling-assumptions.md#simplifications);
+  tutorial [T03](../tutorials/T03_real_data.ipynb), section 6).
 - **Daylight-saving days** are refused unless `allow_dst_transition=True`
   ([OQ-30](omiecid/open-questions.md#oq-30--daylight-saving-transitions-contract-strings-slot-count-and-wall-clock-timestamps)).
 
@@ -124,7 +130,7 @@ session = Session({
 Public files contain no cancellations, so the replay can trade more than the
 real market did; `load_omie_trades` gives the real trades to compare with (see
 [Modelling assumptions](modelling-assumptions.md#replaying-public-omie-data) and
-the `compare_sim_vs_real.py` [demo](../demos/README.md)).
+the [real-data tutorial](../tutorials/T03_real_data.ipynb)).
 
 ## Synthetic tapes
 

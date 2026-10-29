@@ -525,7 +525,7 @@ class TestValidatorRejects:
         p["cert_id"] = cert_id
         assert cs.validate_results(p) != []
 
-    @pytest.mark.parametrize("cert_id", ["C00", "C17", "C90", "C99"])
+    @pytest.mark.parametrize("cert_id", ["C00", "C16", "C90", "C99"])
     def test_good_cert_id(self, cert_id):
         p = _passing().payload()
         p["cert_id"] = cert_id

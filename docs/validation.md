@@ -1,9 +1,12 @@
 # Validation
 
 The matching engine is **certified** against a ladder of 17 scenarios, C00–C16.
-The `Session` built on it is **verified** by a byte-identical parity check
-against the research environment it comes from. This page explains both and
-where the evidence lives.
+All 17 are CERTIFIED (certificate dated 2026-10-26, amended 2026-10-27 and
+2026-10-29). The `Session` built on it is **verified** by a byte-identical
+parity check against the research environment it comes from: the
+reinforcement-learning environment of the research project this package was
+extracted from (not part of this release). This page explains both and where
+the evidence lives.
 
 ## The certification ladder
 
@@ -33,10 +36,6 @@ result. The scenarios and what each one covers are specified in
 | C14 | Capacity edges, one part per ceiling |
 | C15 | Randomised fuzz across the parameter space |
 | C16 | Multi-contract isolation |
-
-The verbatim ladder specification also describes a scenario C17, which measures
-a limitation of the public OMIE data rather than certifying engine behaviour. It
-is not part of this release.
 
 ### Three kinds of evidence
 
@@ -91,46 +90,22 @@ one per scenario, all with the same nine sections: purpose, the rule quoted,
 configuration, dataset, known result, run, certification, verdict and, on
 failure, an explanation. Notebooks are stored without outputs.
 
-The results of the release run (one JSON file per scenario, about 75 MB in
-total) will be published as an asset of the GitHub release, with blake2b
-digests, rather than committed. Once it is published, download the asset, check
-the digests, and
-place the files `C00.json` … `C16.json` in `notebooks/certification/results/`
-(or point the environment variable `OMIE_CERT_RESULTS_DIR` at their directory).
-The audit tests that read them skip until they are present; see
-[Testing](testing.md#certification-results).
+The results of the release run (one JSON file per scenario) are not committed.
+They are published as the pre-release
+[`certification-results-2026-10`](https://github.com/francisco-rodriguez-cuenca/omiecid-simulator/releases/tag/certification-results-2026-10);
+[Testing](testing.md#certification-results) describes them and how the audit
+tests use them.
 
 ## Re-running a notebook
 
-Install the validation tools first (`pip install ".[validation]"`). From the
-repository root:
-
-```bash
-# interactively
-PYTHONPATH=. jupyter lab notebooks/certification/C02_single_crossing_pair.ipynb
-
-# headless, exactly as the test suite runs it
-CUDA_VISIBLE_DEVICES="" PYTHONPATH=. python -c "
-from notebooks.certification.cert_support import execute_notebook
-g = execute_notebook('notebooks/certification/C02_single_crossing_pair.ipynb')
-print(g.passed, g.results['status'])"
-```
-
-`execute_notebook` runs an in-memory copy of the notebook (the file is never
-written) on CPU, with results and fixtures written to fresh temporary
-directories unless `results_dir=` / `fixture_dir=` are given. A notebook passes
-only if every cell executes **and** it leaves exactly one valid results JSON
-whose status is `PASS`. The test
-`tests/omiecid/certification/test_certified_notebooks.py` re-executes every
-certified notebook this way. Some notebooks take several minutes on CPU.
-
-A notebook run interactively, without `OMIE_CERT_RESULTS_DIR`, writes its
-results to `notebooks/certification/results/`.
+Each notebook runs interactively in Jupyter or headless, exactly as the test
+suite runs it. The commands are in the notebooks README, section
+[Running a notebook](../notebooks/certification/README.md#running-a-notebook).
 
 ## The Session
 
-The `Session` is the research environment of the project with its
-reinforcement-learning layers (action decoding, rewards, observations) removed.
+The `Session` is the research environment with its reinforcement-learning
+layers (action decoding, rewards, observations) removed.
 Its mechanics are unchanged, so it is **verified rather than certified**: a
 parity harness drives the `Session` and the research environment with the same
 inputs and compares their outputs and states byte for byte, step by step,

@@ -1,16 +1,14 @@
 # OmieCID-Simulator — Certificate
 
 **Status:** OmieCID-Simulator 0.1.0 — certification of scenarios C00–C16 on the released package
-**Date:** 2026-10-26, amended 2026-10-27 (C14 and C16 re-runs)
+**Date:** 2026-10-26, amended 2026-10-27 (C14 and C16 re-runs) and 2026-10-29 (editorial; see [Appendix A](#appendix-a--amendments))
 **Scope:** the OMIE Continuous Intraday **matching engine** (`omiecid_simulator/omiecid/`)
 **Specification:** [`scenario-ladder.md`](scenario-ladder.md) · **Rules:** [`market-spec.md`](market-spec.md) (v2.14, amended 2026-10-20)
 **Verdict log:** [`certification-log.md`](certification-log.md)
 
 This certificate records the certification of OmieCID-Simulator 0.1.0: the seventeen scenarios
 C00–C16 of the ladder, each re-run on the released package and judged by its own notebook and its
-independent audit test. The ladder specification also describes a scenario C17 (replay fidelity of
-the public data), which measures a limitation of the data rather than certifying behaviour; it is not
-part of this release (see [Appendix A](#appendix-a--replay-fidelity-not-part-of-this-release)).
+independent audit test.
 
 The certificate holds one section per scenario. A section is **signed** when the scenario is
 `CERTIFIED` and **unsigned** when it is `NOT CERTIFIED`. It states what is **not** certified as
@@ -412,9 +410,7 @@ One section per scenario, replaced in place when the scenario is re-closed (the 
 
 ---
 
-## Appendix A — replay fidelity (not part of this release)
+## Appendix A — amendments
 
-The ladder specification describes a scenario C17, the cancellation-fidelity gap: it holds the engine
-fixed and varies the tape, measuring how much a replay of the public data over-matches as a function
-of an assumed cancellation rate. It measures a limitation of the data rather than certifying
-behaviour, and it is not part of this release; this certificate makes no claim from it.
+Amendment (2026-10-29): editorial; the description of a scenario outside the release was removed.
+No scenario section, verdict, signature or results digest changed.

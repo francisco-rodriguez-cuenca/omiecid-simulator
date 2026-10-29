@@ -59,6 +59,7 @@ Static / construction-only tests are fast. Tests that compile and roll
 """
 
 import os
+from datetime import date, timedelta
 
 import numpy as np
 import pytest
@@ -553,10 +554,35 @@ HELD_OUT_EXPECTED = {
 }
 
 
+def _first_missing_product_file(data_dir, dates):
+    """First missing session file of the products of ``dates``, else ``None``.
+
+    A product (D, k) reads ``orders_{D-1}.1``, ``orders_{D}.1``,
+    ``trades_{D-1}.1`` and ``trades_{D}.1``; all four must be present for every
+    delivery date, otherwise the loader refuses the product as incomplete.
+    """
+    for d_iso in dates:
+        d = date.fromisoformat(d_iso)
+        for kind in ("orders", "trades"):
+            for day in (d - timedelta(days=1), d):
+                name = f"{kind}_{day:%Y%m%d}.1"
+                if not os.path.isfile(os.path.join(str(data_dir), name)):
+                    return name
+    return None
+
+
+def _skip_unless_products_present(data_dir, dates):
+    missing = _first_missing_product_file(data_dir, dates)
+    if missing is not None:
+        pytest.skip(f"real OMIE data incomplete: {missing} missing from {data_dir} "
+                    "(partial data/rawOMIE, e.g. after tutorial T03)")
+
+
 @pytest.fixture(scope="module")
 def held_out(tmp_path_factory):
     if not os.path.isdir("data/rawOMIE"):
         pytest.skip("real OMIE data not present (data/rawOMIE missing)")
+    _skip_unless_products_present("data/rawOMIE", list(HELD_OUT_EXPECTED))
     from omiecid_simulator.jaxomiecid.omie_data_loader import build_fixed_tape_set
     # The research eval split (``load_eval_split``) is not shipped; its six
     # held-out dates are the keys of HELD_OUT_EXPECTED.

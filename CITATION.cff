@@ -2,7 +2,7 @@ cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 title: OmieCID-Simulator
 type: software
-abstract: "A JAX-based Python package that reproduces and analyzes order matching in the Iberian CID market operated by OMIE."
+abstract: "A JAX-based Python package that reproduces and analyzes order matching in the Iberian continuous intraday (CID) market operated by OMIE."
 authors:
   - given-names: "Francisco"
     family-names: "Rodriguez-Cuenca"

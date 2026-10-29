@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "omiecid-simulator"
 version = "0.1.0"
-description = "A JAX-based Python package that reproduces and analyzes order matching in the Iberian CID market operated by OMIE."
+description = "A JAX-based Python package that reproduces and analyzes order matching in the Iberian continuous intraday (CID) market operated by OMIE."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "Apache-2.0"
@@ -80,4 +80,5 @@ markers = [
     "gpu: marks tests that require a CUDA GPU (auto-skipped when no CUDA device is visible; see tests/omiecid/conftest.py)",
     "perf: marks temporal/meta-tests that assert wall-clock budgets or perf-gate self-checks rather than OMIE correctness (deselect with '-m \"not perf\"')",
     "audit: marks independent-verification tests (auto-applied to tests/omiecid/*_audit.py by tests/omiecid/conftest.py). Re-run on demand, not on every routine full-suite run; routine runs use '-m \"not audit\"'. The two core gate members (test_contract_book_audit, test_ioc_fok_audit) are exempt from this marker and always run.",
+    "tutorials: executes a tutorial notebook under tutorials/ (minutes each). Deselected unless the -m expression names it (tests/tutorials/conftest.py); run with '-m tutorials -n 0'",
 ]

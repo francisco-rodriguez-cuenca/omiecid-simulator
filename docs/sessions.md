@@ -18,6 +18,8 @@ tob = session.top_of_book(state)                           # TopOfBook
 ```
 
 The [README quickstart](../README.md#quickstart) is a complete, runnable example.
+Tutorial [T05](../tutorials/T05_session.ipynb) walks through a session step by
+step, and the [tutorials](../tutorials/README.md) cover the rest of the package.
 
 ## One step
 
@@ -75,7 +77,7 @@ A fixed-shape record of the step, safe under `jit` and `vmap`.
 | `passive_qty_signed` | MW of the participant's resting orders filled during this step (by the background flow, or by the participant's own order in a [self-match](#self-trades)); positive on a buy. |
 | `passive_value_eur` | Realized EUR of those passive fills; **positive on a sell**, negative on a buy. |
 | `inventory_delta` | Change of the participant's net position, MW, positive on a buy (aggressive plus passive). |
-| `cash_delta_eur` | Realized cash of the step, EUR, **unscaled**: $+V$ on a sell, $-V$ on a buy, with $V = Q \cdot p \cdot d$ (aggressive plus passive). |
+| `cash_delta_eur` | Realized cash of the step, EUR, **unscaled**: $+V$ on a sell, $-V$ on a buy, with $V = p \cdot q \cdot d$ (aggressive plus passive). |
 | `trade_rows` | `(2, 6)` int32: the rows written to the participant's trade tape this step (row 0 the aggressive leg, row 1 the passive leg; all zero when no fill). |
 | `trades_saturated` | The book's trade buffer is full after the step: every one of its `nTrades` rows holds a trade, so later trades overwrite the last row. See [sizing `nTrades`](#sizing-ntrades). |
 
@@ -225,10 +227,12 @@ step_counter`), so keep the ids of the orders you may want to cancel.
 
 ## Self-trades
 
-OMIE has no self-trade prevention
-([OQ-12](omiecid/open-questions.md#oq-12--anti-self-match--self-trade-prevention-scope)),
+OMIE's matching has no self-trade prevention (provisional, medium-high
+confidence: [OQ-12](omiecid/open-questions.md#oq-12--anti-self-match--self-trade-prevention-scope)),
 so the participant's order can trade against its own resting order, and the
-trade is printed in the book like any other. The session attributes the passive
+trade is printed in the book like any other. European market-abuse rules (REMIT)
+still forbid wash trades; that is checked by surveillance after the fact, not by
+the matching. The session attributes the passive
 side of such a match as well as the aggressive side. After a self-match, the
 participant's inventory and cash therefore net to zero **within the float32
 rounding of their running sums** (for example about $10^{-7}$ MW), not
@@ -262,10 +266,19 @@ with jax.experimental.enable_x64():
     states, reports, dones = jax.vmap(session.step_env)(keys, states, orders)
 ```
 
-The reason is in [Limitations](limitations.md).
+The 64-bit context is needed for the reason given in [Limitations](limitations.md).
+
+A batch gives the same results as running the sessions one at a time, but it
+is not a speed-up on a CPU: under `jax.vmap` every branch of the engine runs for
+every session, and the cost of a batch grows with its size. On a CPU, compile one
+session with `jax.jit` of a `jax.lax.scan` over `step_env` and call it in a loop
+over seeds and tapes. See [Performance](performance.md#running-faster) and
+tutorial [T09](../tutorials/T09_scaling.ipynb).
 
 ## Several participants
 
 A session has one participant. Several participants can trade on one contract
 directly at book level, with `ContractBook.submit_order` and
-`ContractBook.cancel_order`, each with its own `agent_id`.
+`ContractBook.cancel_order`, each with its own `agent_id`. Tutorial
+[T07](../tutorials/T07_several_participants.ipynb) shows it with three traders,
+including the zero-sum check of their cash and positions.

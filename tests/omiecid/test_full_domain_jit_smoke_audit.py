@@ -44,7 +44,8 @@ unlikely to have covered, structured by 14 dimensions:
  11.  ``load_omie_agent_metadata`` contract (AC 8 deep probe — structure /
       types of the returned dict).
  12.  Module-level jit idiom conformance (``static_argnames`` tuple form).
- 13.  Demo-script contract (top-level imports resolve cleanly).
+ 13.  (Removed: the demo-script import contract; the demo was
+      deleted and tutorial T03 replaces it.)
  14.  Phase 3 surface untouched (deferral-respect).
 
 Marker discipline (Story T1.1): every test traces or compiles
@@ -110,8 +111,6 @@ TRADE_EXTRACTION_PATH = OMIE_DIR / "trade_extraction.py"
 ORDER_VALIDATOR_PATH = OMIE_DIR / "order_validator.py"
 JAX_CONSTANTS_PATH = OMIE_DIR / "jax_constants.py"
 ENCODING_PATH = OMIE_DIR / "encoding.py"
-
-DEMO_PATH = REPO_ROOT / "demos" / "generate_real_data_demo.py"
 
 
 # Modules whose AST is probed for forbidden idioms in dimension 7. We
@@ -1367,65 +1366,6 @@ class TestModuleLevelJitIdiomConformance:
         assert offenders == [], (
             f"jorderbook.py contains static_argnums (forbidden): {offenders}"
         )
-
-
-# ---------------------------------------------------------------------------
-# Dimension 13. Demo-script contract (top-level imports resolve)
-# ---------------------------------------------------------------------------
-
-
-class TestDemoScriptContract:
-    """`demos/generate_real_data_demo.py` imports cleanly. We do NOT
-    execute the demo (the iceberg-cap-overflow story affects its output
-    reliability), but its top-level imports must resolve."""
-
-    def test_demo_file_exists(self):
-        assert DEMO_PATH.is_file(), f"demo not found at {DEMO_PATH}"
-
-    def test_demo_file_compiles_to_bytecode(self):
-        """compile(...) is enough to verify syntactic + top-level-import
-        correctness without running side-effecting Python at import time."""
-        src = DEMO_PATH.read_text()
-        try:
-            compile(src, str(DEMO_PATH), "exec")
-        except SyntaxError as e:
-            raise AssertionError(
-                f"demos/generate_real_data_demo.py has SyntaxError: {e}"
-            ) from e
-
-    def test_demo_top_level_imports_resolvable(self):
-        """Resolve every top-level `import` / `from ... import` line by
-        running `python -c "import X"` in a subprocess.
-
-        We do this rather than actually importing the demo because the
-        demo's `__main__` may have heavy execution paths; we want to
-        verify the import surface only.
-        """
-        src = DEMO_PATH.read_text()
-        tree = ast.parse(src)
-        modules_to_check: List[str] = []
-        for node in tree.body:
-            if isinstance(node, ast.Import):
-                for alias in node.names:
-                    modules_to_check.append(alias.name)
-            elif isinstance(node, ast.ImportFrom):
-                if node.module and node.level == 0:
-                    modules_to_check.append(node.module)
-        # Pick out omiecid_simulator and demos-domain imports only — third-party
-        # modules (numpy, pandas, matplotlib) are assumed available since
-        # they're already part of the project environment.
-        domain_mods = [
-            m for m in modules_to_check
-            if m.startswith("omiecid_simulator") or m.startswith("demos")
-        ]
-        # Each domain module must `import` without failure.
-        for mod in domain_mods:
-            try:
-                importlib.import_module(mod)
-            except ImportError as e:
-                raise AssertionError(
-                    f"demo's import `{mod}` fails: {e}"
-                ) from e
 
 
 # ---------------------------------------------------------------------------

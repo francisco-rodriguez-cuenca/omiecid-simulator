@@ -123,12 +123,13 @@ conformance to these rulings.
   ([§8.3](omiecid/market-spec.md#83-settlement-granularity-per-unit-hard-rule)).
   The list of a participant's trades carries price, quantity and time, not side
   ([§9.2](omiecid/market-spec.md#92-observable-market-state-variables)).
-- **No firmness or imbalance.** Delivery obligations, imbalance costs and any
-  close-out price are outside the market and not computed
+- **Delivery and imbalance not modelled.** Every trade is firm, but the delivery
+  obligations it creates, imbalance costs and any close-out price are outside the
+  market and not computed
   ([§8.2](omiecid/market-spec.md#82-trade-firmness),
   [§8.5](omiecid/market-spec.md#85-closing-out-open-positions);
   [OQ-24](omiecid/open-questions.md#oq-24--terminal-forced-close-out-reference-price-for-an-open-agent-position-at-episode-end-inventory-aware-reward)).
-- **Self-matches.** As OMIE has no self-trade prevention, a participant's order
+- **Self-matches.** As OMIE's matching has no self-trade prevention (provisional, OQ-12), a participant's order
   can trade against its own resting order. The session attributes the passive
   side of such a match, so inventory and cash net to zero within float32
   rounding ([Sessions](sessions.md#self-trades)).

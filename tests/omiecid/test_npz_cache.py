@@ -245,6 +245,19 @@ class TestCacheRoundtrip:
 # TestCacheSpeedup — cached load is faster than raw parse
 # ---------------------------------------------------------------------------
 
+# Product (2025-06-14, k=2) reads these four session files (D-1 and D).
+_REAL_PRODUCT_FILES = ["orders_20250613.1", "orders_20250614.1",
+                       "trades_20250613.1", "trades_20250614.1"]
+
+
+def _first_missing_file(data_path, names):
+    """First of ``names`` that is not a file under ``data_path``, else ``None``."""
+    for name in names:
+        if not os.path.isfile(os.path.join(data_path, name)):
+            return name
+    return None
+
+
 @_m73_skip
 @_m72_skip
 class TestCacheSpeedup:
@@ -275,12 +288,13 @@ class TestCacheSpeedup:
             delivery_date="2025-06-14",
             cache_path=cache_dir,
         )
-        # Verify raw data files exist — skip if not
-        orders_glob = os.path.join(data_path, "orders_*.1")
-        import glob as glob_mod
-        if not glob_mod.glob(orders_glob):
+        # Verify the four session files of product (2025-06-14, k=2) exist
+        # (D-1 and D, orders and trades) — skip if any is missing
+        missing = _first_missing_file(data_path, _REAL_PRODUCT_FILES)
+        if missing is not None:
             pytest.skip(
-                f"No OMIE order files found under {data_path}; "
+                f"real OMIE data incomplete: {missing} missing from {data_path} "
+                "(partial data/rawOMIE, e.g. after tutorial T03); "
                 "set OMIE_DATA_PATH to run cache speedup tests"
             )
         return cfg
