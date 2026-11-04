@@ -414,3 +414,12 @@ One section per scenario, replaced in place when the scenario is re-closed (the 
 
 Amendment (2026-10-29): editorial; the description of a scenario outside the release was removed.
 No scenario section, verdict, signature or results digest changed.
+
+Amendment (2026-11-04): scope note for OmieCID-Simulator 0.1.1. In the package code, the only
+change in 0.1.1 is the value that `generate_contracts()` writes to a contract's `gct_minutes`
+field, which now follows the hour-aligned rule $\mathrm{GCT}(k) = 60\lfloor k/4 \rfloor - 60$
+minutes from the start of the delivery day. The other 0.1.1 changes are to tutorials, tests and
+documentation. No certified scenario calls `generate_contracts()`: the notebooks and audit tests that
+build a contract give it literal values, and no module of the engine reads the field. C00, C01 and
+C11, re-run on 0.1.1, reproduce their signed results digests; only the measured `wall_clock_s`
+differs. No scenario section, verdict, signature or results digest changed.

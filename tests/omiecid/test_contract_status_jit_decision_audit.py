@@ -383,8 +383,8 @@ class TestRuntimeBehaviorUnchanged:
         assert all(c.status == ContractStatus.PENDING for c in contracts), (
             "All generated contracts must start PENDING (branch (b) no-op)."
         )
-        # GCT = delivery_start - 60 (market-spec §3.1)
+        # Hour-aligned GCT(k) = 60 * (k // 4) - 60 (market-spec §3.1, v2.10)
         for c in contracts:
-            assert c.gct_minutes == c.delivery_start_minutes - 60, (
+            assert c.gct_minutes == 60 * (c.contract_id // 4) - 60, (
                 f"Contract {c.contract_id}: GCT offset broken."
             )

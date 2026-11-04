@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented in this file.
 
-## [Unreleased]
+## [0.1.1] — 2026-11-04
 
 ### Added
 
@@ -35,15 +35,15 @@ All notable changes to this project are documented in this file.
 - The quick check (`pytest -m "not slow"`) no longer fails depending on the
   order in which the tests run: the two tests that count compiled programs of
   the order-submission code now clear its cache first.
+- `generate_contracts()` now sets each contract's `gct_minutes` field to the
+  hour-aligned gate closure, $\mathrm{GCT}(k) = 60\lfloor k/4 \rfloor - 60$
+  minutes from the start of the delivery day. For slots with
+  $k \bmod 4 \ne 0$, code that reads the field gets a value 15, 30 or 45 minutes
+  earlier than in 0.1.0. The order book never reads the field, so matching,
+  expiry and the certification results are unchanged.
 
 ### Known issues
 
-- A contract's `gct_minutes` field is wrong for three of every four
-  quarter-hours: it is set one hour before the quarter-hour's delivery start,
-  while gate closure is aligned to the delivery hour. The order book never
-  reads it, and a session closes on its own gate-closure setting, so matching,
-  expiry and the certification results are not affected. See
-  [Limitations](docs/limitations.md#known-issues).
 - The `--keep-zips` option of the download script has no effect: the downloaded
   archives are always kept, in a `.zips` folder inside the output folder. The
   Data page says so.

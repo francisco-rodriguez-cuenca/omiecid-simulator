@@ -19,7 +19,7 @@ authors:
     email: "alvaro.lopez@iit.comillas.edu"
     orcid: "https://orcid.org/0000-0001-9879-5603"
     affiliation: "Instituto de Investigación Tecnológica (IIT), ICAI School of Engineering, Universidad Pontificia Comillas"
-version: 0.1.0
+version: 0.1.1
 license: Apache-2.0
 keywords:
   - JAX

@@ -36,8 +36,12 @@ class Contract:
         contract_id: 0–95 identifying the quarter-hour slot.
         delivery_start_minutes: Start of delivery period (minutes from midnight).
         delivery_end_minutes: End of delivery period (delivery_start + 15).
-        gct_minutes: Gate Closure Time (delivery_start - 60). May be negative
-            for early-morning contracts (GCT falls on previous calendar day).
+        gct_minutes: Gate Closure Time, aligned to the delivery hour:
+            60 * (contract_id // 4) - 60. The four quarter-hours of one hour
+            close together, one hour before that hour starts (market-spec.md
+            §3.1; market-model.md "Trading window and gate closure"). Negative
+            for the first hour's contracts (GCT falls on the previous calendar
+            day).
         status: Current lifecycle status.
     """
     contract_id: int
@@ -54,7 +58,13 @@ def generate_contracts() -> list["Contract"]:
       - Contract 0:  00:00–00:15
       - Contract 95: 23:45–24:00
 
-    GCT (Gate Closure Time) is 60 minutes before delivery start (§3.1).
+    GCT (Gate Closure Time) is aligned to the delivery hour: the four
+    quarter-hours of hour h (contracts 4h..4h+3) all close one hour before
+    that hour starts, GCT(k) = 60 * (k // 4) - 60 minutes from midnight of
+    the delivery day, i.e. 60, 75, 90 and 105 min before their own delivery
+    starts; negative (the previous day) for contracts 0-3
+    (market-spec.md §3.1, §11.1; market-model.md "Trading window and gate
+    closure").
     All contracts start in PENDING status.
 
     Returns:
@@ -67,7 +77,7 @@ def generate_contracts() -> list["Contract"]:
             contract_id=cid,
             delivery_start_minutes=start,
             delivery_end_minutes=start + 15,
-            gct_minutes=start - 60,
+            gct_minutes=60 * (cid // 4) - 60,
             status=ContractStatus.PENDING,
         ))
     return contracts

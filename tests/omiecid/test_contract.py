@@ -40,7 +40,7 @@ def contract_95():
         contract_id=95,
         delivery_start_minutes=23 * 60 + 45,  # 1425
         delivery_end_minutes=24 * 60,          # 1440
-        gct_minutes=23 * 60 + 45 - 60,        # 1365
+        gct_minutes=60 * (95 // 4) - 60,      # 1320: hour-aligned, closes with contracts 92-94 (§3.1 v2.10)
         status=ContractStatus.PENDING,
     )
 
@@ -52,7 +52,7 @@ def contract_37():
         contract_id=37,
         delivery_start_minutes=9 * 60 + 15,   # 555
         delivery_end_minutes=9 * 60 + 30,      # 570
-        gct_minutes=9 * 60 + 15 - 60,          # 495
+        gct_minutes=60 * (37 // 4) - 60,       # 480: hour-aligned, closes with contracts 36-39 (§3.1 v2.10)
         status=ContractStatus.PENDING,
     )
 
@@ -148,35 +148,40 @@ class TestContractIdToDeliveryTime:
 
 
 # ---------------------------------------------------------------------------
-# TestGCTIsOneHourBeforeDelivery — GCT = delivery_start - 60
+# TestGCTIsHourAligned — GCT(k) = 60 * (k // 4) - 60
 # ---------------------------------------------------------------------------
 
-class TestGCTIsOneHourBeforeDelivery:
-    """GCT must be exactly 1 hour (60 minutes) before delivery start (§3.1)."""
+class TestGCTIsHourAligned:
+    """GCT is hour-aligned (market-spec §3.1, v2.10 correction; §11.1).
+
+    GCT(k) = 60 * floor(k / 4) - 60 minutes from D 00:00: one hour before the
+    start of the delivery *hour* containing quarter-hour k, so the four
+    quarter-hours of an hour close together.
+    """
 
     def test_gct_contract_0(self, contract_0):
         """Contract 0: GCT = 0 - 60 = -60 minutes (before midnight on previous day)."""
         assert contract_0.gct_minutes == -60
 
     def test_gct_contract_95(self, contract_95):
-        """Contract 95: GCT = 1425 - 60 = 1365 minutes (22:45)."""
-        assert contract_95.gct_minutes == 1365
+        """Contract 95 (23:45): GCT = 60 * 23 - 60 = 1320 minutes (22:00)."""
+        assert contract_95.gct_minutes == 1320
 
     def test_gct_contract_37(self, contract_37):
-        """Contract 37: GCT = 555 - 60 = 495 minutes (08:15)."""
-        assert contract_37.gct_minutes == 495
+        """Contract 37 (09:15): GCT = 60 * 9 - 60 = 480 minutes (08:00)."""
+        assert contract_37.gct_minutes == 480
 
-    def test_gct_is_delivery_start_minus_60(self, contract_0):
-        """GCT formula: delivery_start_minutes - 60."""
-        assert contract_0.gct_minutes == contract_0.delivery_start_minutes - 60
+    def test_gct_is_hour_aligned(self, contract_0):
+        """GCT formula: 60 * (contract_id // 4) - 60."""
+        assert contract_0.gct_minutes == 60 * (contract_0.contract_id // 4) - 60
 
-    def test_gct_is_delivery_start_minus_60_last(self, contract_95):
+    def test_gct_is_hour_aligned_last(self, contract_95):
         """GCT formula holds for last contract."""
-        assert contract_95.gct_minutes == contract_95.delivery_start_minutes - 60
+        assert contract_95.gct_minutes == 60 * (contract_95.contract_id // 4) - 60
 
-    def test_gct_is_delivery_start_minus_60_mid(self, contract_37):
+    def test_gct_is_hour_aligned_mid(self, contract_37):
         """GCT formula holds for mid-day contract."""
-        assert contract_37.gct_minutes == contract_37.delivery_start_minutes - 60
+        assert contract_37.gct_minutes == 60 * (contract_37.contract_id // 4) - 60
 
     def test_early_contracts_have_negative_gct(self):
         """Contracts 0-3 (00:00-01:00) have GCT before midnight (negative minutes).
@@ -513,11 +518,14 @@ class TestFactoryDeliveryWindows:
 
 
 # ---------------------------------------------------------------------------
-# TestFactoryGCTs — GCT = delivery_start - 60 for all contracts
+# TestFactoryGCTs — GCT(k) = 60 * (k // 4) - 60 for all contracts
 # ---------------------------------------------------------------------------
 
 class TestFactoryGCTs:
-    """Every factory-generated contract must have GCT = delivery_start − 60."""
+    """Every factory-generated contract has the hour-aligned GCT.
+
+    GCT(k) = 60 * floor(k / 4) - 60 (market-spec §3.1, v2.10 correction; §11.1).
+    """
 
     def test_contract_0_gct(self, all_contracts):
         """Contract 0: GCT = 0 - 60 = -60 (previous day)."""
@@ -528,13 +536,13 @@ class TestFactoryGCTs:
         assert all_contracts[4].gct_minutes == 0
 
     def test_contract_95_gct(self, all_contracts):
-        """Contract 95: GCT = 1425 - 60 = 1365 (22:45)."""
-        assert all_contracts[95].gct_minutes == 1365
+        """Contract 95 (23:45): GCT = 60 * 23 - 60 = 1320 (22:00)."""
+        assert all_contracts[95].gct_minutes == 1320
 
     def test_all_gcts_correct(self, all_contracts):
-        """Every contract's GCT = delivery_start_minutes - 60."""
+        """Every contract's GCT = 60 * (contract_id // 4) - 60."""
         for c in all_contracts:
-            assert c.gct_minutes == c.delivery_start_minutes - 60
+            assert c.gct_minutes == 60 * (c.contract_id // 4) - 60
 
     def test_first_4_contracts_have_negative_gct(self, all_contracts):
         """Contracts 0–3 (delivery before 01:00) have negative GCT (previous day)."""
@@ -546,11 +554,16 @@ class TestFactoryGCTs:
         for i in range(4, 96):
             assert all_contracts[i].gct_minutes >= 0
 
-    def test_gcts_are_strictly_increasing(self, all_contracts):
-        """GCT values increase monotonically across contracts."""
+    def test_gcts_equal_within_hour_strictly_increasing_across_hours(
+        self, all_contracts
+    ):
+        """The four quarter-hours of an hour share one GCT; GCTs increase hour to hour."""
         gcts = [c.gct_minutes for c in all_contracts]
         for i in range(len(gcts) - 1):
-            assert gcts[i] < gcts[i + 1]
+            if (i + 1) % 4 == 0:
+                assert gcts[i] < gcts[i + 1]
+            else:
+                assert gcts[i] == gcts[i + 1]
 
 
 # ---------------------------------------------------------------------------

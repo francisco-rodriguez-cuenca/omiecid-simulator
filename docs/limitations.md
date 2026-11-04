@@ -110,18 +110,3 @@ limitation; separate passive slots per direction are planned for v0.2. See
 - One contract per session; no cross-contract or cross-border flow.
 - No reinforcement-learning layer: actions, rewards and observations are left to
   the user.
-
-## Known issues
-
-- **A contract's `gct_minutes` field is wrong for three of every four
-  quarter-hours.** `generate_contracts()` sets it to one hour before each
-  quarter-hour's delivery start. In the Iberian continuous market, gate closure
-  is aligned to the delivery hour: the four quarter-hours of an hour all close
-  one hour before that hour starts. For slot $k$,
-  $\mathrm{GCT}(k) = 60\lfloor k/4 \rfloor - 60$ minutes from the start of the
-  delivery day (see [Market model](market-model.md#trading-window-and-gate-closure)).
-  The two agree only for the first quarter-hour of each hour. The field is a
-  label: the order book never reads it, and a `Session` closes on its own
-  gate-closure setting (`gct_minutes_from_got`). Matching, expiry and the
-  certification results are not affected. Compute gate closure from the
-  formula.

@@ -440,8 +440,9 @@ def _first_data_config(ds):
 def _contract_book_for(contract_id: int):
     """Build an OPEN ContractBook for a contract_id (default OMIE configs).
 
-    ``delivery_start_minutes = contract_id * 15`` and ``gct_minutes = start - 60``
-    per market-spec §13.4 / §3.1 (contract.py:generate_contracts). Default
+    ``delivery_start_minutes = contract_id * 15`` and the hour-aligned
+    ``gct_minutes = 60 * (contract_id // 4) - 60`` per market-spec §13.4 /
+    §3.1 v2.10 (contract.py:generate_contracts). Default
     product/market configs (the same the loader/env use). OPEN status so the
     replay scan is entered (P2-L3 caller-contract).
     """
@@ -450,7 +451,7 @@ def _contract_book_for(contract_id: int):
         contract_id=int(contract_id),
         delivery_start_minutes=start,
         delivery_end_minutes=start + 15,
-        gct_minutes=start - 60,
+        gct_minutes=60 * (int(contract_id) // 4) - 60,
         status=ContractStatus.OPEN,
     )
     return ContractBook(contract, OMIEProductConfig(), OMIEMarketConfig())
