@@ -21,9 +21,23 @@ Everything is written in JAX: the session step is compiled once and can be
 
 ## Installation
 
-One path, from a clone to a passing check. Copy the commands in order; after
-`cd omiecid-simulator`, every command runs from the repository root. Every
-other page links here.
+To use the package, install it from PyPI:
+
+```bash
+pip install omiecid-simulator
+```
+
+To install the exact versions this release was verified with (under Python
+3.10), add the constraints file at the release tag:
+
+```bash
+pip install omiecid-simulator -c https://raw.githubusercontent.com/francisco-rodriguez-cuenca/omiecid-simulator/v0.1.2/constraints/verified.txt
+```
+
+To run the tutorials, the certification notebooks or the tests, clone the
+repository: the steps below go from a clone to a passing check. Copy the
+commands in order; after `cd omiecid-simulator`, every command runs from the
+repository root.
 
 ### 1. Create the environment and install
 
@@ -47,8 +61,8 @@ What the flags do:
 - `[validation,examples]` adds the notebook tooling, the test runner and the
   demo's progress bar.
 
-The distribution is named `omiecid-simulator` (`pip install omiecid-simulator`
-once it is published on PyPI); the import package is `omiecid_simulator`.
+The distribution is named `omiecid-simulator` (the name on PyPI); the import
+package is `omiecid_simulator`.
 
 ### 2. Verify the installation
 
@@ -195,8 +209,10 @@ and [Limitations](docs/limitations.md)).
 
 ## Real OMIE data
 
-No OMIE data ships with the package. Download the public files from OMIE
-(both order and trade files are needed), then load one contract:
+No OMIE data ships with the package. From a clone of the repository (the
+download script is not part of the installed package), download the public
+files from OMIE (both order and trade files are needed), then load one
+contract:
 
 ```bash
 python -m scripts.download_omie_data --months 202506 --data-type orders
@@ -227,6 +243,8 @@ tutorial [T03](tutorials/T03_real_data.ipynb).
 
 ## Documentation
 
+- The documentation site, <https://omiecid-simulator.readthedocs.io/>: the pages
+  below, the tutorials with their outputs, and an API reference.
 - [Tutorials](tutorials/README.md): nine executed notebooks, from a first
   contract to running many sessions fast.
 - [Market model](docs/market-model.md): what the engine implements, rule by rule.

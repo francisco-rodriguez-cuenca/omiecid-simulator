@@ -1,23 +1,29 @@
 [build-system]
-requires = ["hatchling>=1.26"]
+requires = ["hatchling==1.33.0", "hatch-fancy-pypi-readme==25.1.0"]
 build-backend = "hatchling.build"
 
 [project]
 name = "omiecid-simulator"
-version = "0.1.1"
+version = "0.1.2"
 description = "A JAX-based Python package that reproduces and analyzes order matching in the Iberian continuous intraday (CID) market operated by OMIE."
-readme = "README.md"
-requires-python = ">=3.10"
+dynamic = ["readme"]
+requires-python = ">=3.10,<3.13"
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
 authors = [
     { name = "Francisco Rodriguez-Cuenca", email = "frodriguezc@comillas.edu" },
+    { name = "Eugenio Francisco Sánchez Úbeda", email = "eugenio.sanchez@iit.comillas.edu" },
+    { name = "Álvaro Jesús López López", email = "alvaro.lopez@iit.comillas.edu" },
 ]
 keywords = ["jax", "limit order book", "continuous intraday market", "OMIE", "electricity markets", "simulation"]
 classifiers = [
+    "Development Status :: 3 - Alpha",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.10",
-    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: POSIX :: Linux",
     "Intended Audience :: Science/Research",
     "Topic :: Scientific/Engineering",
 ]
@@ -28,6 +34,13 @@ dependencies = [
     "numpy>=2.2",
     "pandas>=2.3,<3",
 ]
+
+[project.urls]
+Homepage = "https://github.com/francisco-rodriguez-cuenca/omiecid-simulator"
+Documentation = "https://omiecid-simulator.readthedocs.io/"
+Repository = "https://github.com/francisco-rodriguez-cuenca/omiecid-simulator"
+Changelog = "https://github.com/francisco-rodriguez-cuenca/omiecid-simulator/blob/main/CHANGELOG.md"
+Issues = "https://github.com/francisco-rodriguez-cuenca/omiecid-simulator/issues"
 
 [project.optional-dependencies]
 # Certification notebooks (notebooks/certification/) and the test suite.
@@ -57,19 +70,45 @@ dev = [
     "build>=1.2",
 ]
 
+# The README is the PyPI long description. Its relative links work on GitHub
+# but not on PyPI, so the build rewrites each one into a GitHub link at the
+# release tag; README.md itself keeps its relative links.
+[tool.hatch.metadata.hooks.fancy-pypi-readme]
+content-type = "text/markdown"
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.fragments]]
+path = "README.md"
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]
+pattern = '\]\((?!https?://|mailto:|#)([^)\s]+)\)'
+replacement = '](https://github.com/francisco-rodriguez-cuenca/omiecid-simulator/blob/v0.1.2/\1)'
+
+# Inline link with a title: [text](relative/path "title").
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]
+pattern = '\]\((?!https?://|mailto:|#)([^)\s]+)(\s+"[^"]*")\)'
+replacement = '](https://github.com/francisco-rodriguez-cuenca/omiecid-simulator/blob/v0.1.2/\1\2)'
+
+# Reference-style link definition: [label]: relative/path (up to 3 leading
+# spaces; footnote definitions "[^n]:" are left alone).
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]
+pattern = '(?m)^( {0,3}\[(?!\^)[^\]]+\]:[ \t]*)(?!https?://|mailto:|#|<)(\S+)'
+replacement = '\1https://github.com/francisco-rodriguez-cuenca/omiecid-simulator/blob/v0.1.2/\2'
+
 [tool.hatch.build.targets.wheel]
 packages = ["omiecid_simulator"]
 
 [tool.hatch.build.targets.sdist]
+# Root-anchored ("/..."): an unanchored name such as "README.md" would also
+# match nested README files under other directories.
 include = [
-    "omiecid_simulator/",
-    "README.md",
-    "LICENSE",
-    "NOTICE",
-    "AUTHORS",
-    "CITATION.cff",
-    "CHANGELOG.md",
-    "pyproject.toml",
+    "/omiecid_simulator/",
+    "/README.md",
+    "/LICENSE",
+    "/NOTICE",
+    "/AUTHORS",
+    "/CITATION.cff",
+    "/CHANGELOG.md",
+    "/pyproject.toml",
 ]
 
 [tool.pytest.ini_options]

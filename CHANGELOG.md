@@ -2,6 +2,30 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.1.2] — 2026-11-06
+
+The first version published on PyPI. The package code is the same as in 0.1.1.
+
+### Added
+
+- PyPI: the package installs with `pip install omiecid-simulator`. The README
+  shows this first, with an optional constraints file for the verified
+  versions, and keeps the clone path for the tutorials, the certification
+  notebooks and the tests.
+- Documentation site at <https://omiecid-simulator.readthedocs.io/>, built from
+  the guides, the tutorials and an API reference.
+
+### Changed
+
+- Packaging metadata: project links, a bounded `requires-python`, and
+  classifiers for the Python versions and the operating system it was
+  verified on (Linux). On PyPI, the README's relative links point to the files
+  on GitHub at the release tag.
+- Source distribution: it no longer includes the nested README files from
+  other directories.
+- Tutorials: small touch-ups to the code, the text and the setup cell; the
+  printed results are unchanged apart from measured times and cache counts.
+
 ## [0.1.1] — 2026-11-04
 
 ### Added
@@ -35,12 +59,7 @@ All notable changes to this project are documented in this file.
 - The quick check (`pytest -m "not slow"`) no longer fails depending on the
   order in which the tests run: the two tests that count compiled programs of
   the order-submission code now clear its cache first.
-- `generate_contracts()` now sets each contract's `gct_minutes` field to the
-  hour-aligned gate closure, $\mathrm{GCT}(k) = 60\lfloor k/4 \rfloor - 60$
-  minutes from the start of the delivery day. For slots with
-  $k \bmod 4 \ne 0$, code that reads the field gets a value 15, 30 or 45 minutes
-  earlier than in 0.1.0. The order book never reads the field, so matching,
-  expiry and the certification results are unchanged.
+- `generate_contracts()` sets `gct_minutes` to the hour-aligned gate closure.
 
 ### Known issues
 
@@ -63,3 +82,7 @@ Initial release of OmieCID-Simulator.
   pre-release `certification-results-2026-10`, and the test suite.
 - Packaging (`pyproject.toml`, `constraints/verified.txt`) and legal metadata
   (`NOTICE`, `AUTHORS`, `CITATION.cff`) under the inherited Apache-2.0 licence.
+
+[0.1.2]: https://github.com/francisco-rodriguez-cuenca/omiecid-simulator/releases/tag/v0.1.2
+[0.1.1]: https://github.com/francisco-rodriguez-cuenca/omiecid-simulator/releases/tag/v0.1.1
+[0.1.0]: https://github.com/francisco-rodriguez-cuenca/omiecid-simulator/releases/tag/v0.1.0

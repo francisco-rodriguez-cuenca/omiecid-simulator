@@ -41,8 +41,9 @@ T01 first contract ──> T02 order types ──> T07 several participants ─�
 
 ## Running the tutorials
 
-Install the package as described in the
-[installation section of the main README](../README.md#installation). Then, from the
+Clone the repository and install it as described in steps 1 and 2 of the
+[installation section of the main README](../README.md#installation) (the PyPI
+install alone does not include Jupyter or the tutorials). Then, from the
 repository root:
 
 ```bash

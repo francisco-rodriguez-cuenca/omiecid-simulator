@@ -19,7 +19,10 @@ authors:
     email: "alvaro.lopez@iit.comillas.edu"
     orcid: "https://orcid.org/0000-0001-9879-5603"
     affiliation: "Instituto de Investigación Tecnológica (IIT), ICAI School of Engineering, Universidad Pontificia Comillas"
-version: 0.1.1
+version: 0.1.2
+date-released: 2026-11-06
+repository-code: "https://github.com/francisco-rodriguez-cuenca/omiecid-simulator"
+url: "https://omiecid-simulator.readthedocs.io/"
 license: Apache-2.0
 keywords:
   - JAX

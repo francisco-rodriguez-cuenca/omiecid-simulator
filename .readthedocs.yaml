@@ -1,0 +1,12 @@
+# Read the Docs configuration of the OmieCID-Simulator documentation site.
+# The source folder is the repository root and the Sphinx configuration is docs/conf.py, so the
+# build runs explicit commands (the sphinx.configuration key would make docs the source folder).
+version: 2
+
+build:
+  os: ubuntu-24.04
+  tools:
+    python: "3.12"
+  commands:
+    - python -m pip install -r docs/requirements.txt
+    - python -m sphinx -T -W --keep-going -b html -c docs . $READTHEDOCS_OUTPUT/html

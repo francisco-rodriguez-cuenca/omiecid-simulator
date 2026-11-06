@@ -48,3 +48,8 @@ saved_npz/**
 notebooks/certification/results/*.json
 results-asset/
 demos/*_omie_real*/
+
+# Documentation site build output
+_build/
+# sphinx-autoapi pages, written into the source folder during a build
+autoapi/
